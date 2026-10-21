@@ -25,5 +25,22 @@ QuixSEO implementation status is updated after verification.
 | AI suggestions | Paid/service dependent | Service dependent | Not required | Deferred, optional future BYOK |
 | Registry sandbox distribution | WordPress plugin | WordPress plugin | Existing competitor native | Official sandbox format and Block Kit |
 
-Implementation has not yet been verified. See the final implementation ledger
-and docs/TEST-RESULTS.md before deploying.
+## Verified alpha implementation ledger
+
+| Module | Current behavior | Remaining work |
+|---|---|---|
+| Dashboard | Real partial/completed audit counts, duplicate overrides, noindex, orphan candidates, findings links | Severity filters, prioritized site-wide action queue |
+| Editor | Saved-entry analysis; explicit unsaved posts/pages toast; plugin-config review/save/revert | Native SEO writes blocked; richer interactive preview |
+| Readability | Structural checks and English-only formula/rules | Additional tested language packs |
+| Search appearance | Core field reuse, social overrides, fallback image/description, template previews | Native title/description/template application blocked |
+| Schema | Ten validated types, linked graph, original JSON controls | Accessible type-specific visual forms, broader properties |
+| Audit | One-entry steps with restartable state, duplicate and link graph evaluation | Full technical crawl, known-target broken links, sitemap/robots verification |
+| Redirects / 404 | Core rules list/create; strict path validation; one-rule import/page export; core 404 guidance | Whole-site graph and pattern conflict checks, destination availability |
+| Bulk | Page filtering, JSON previews, actor-bound CAS writes/history/revert for plugin data | Native writes blocked; field-based bulk UI and site-wide filtering |
+| Linking | Incoming/outgoing counts, cornerstone, local relevance suggestions (first 100 records) | Full graph candidate pagination, custom blocks |
+| Migration | Local WXR mapping, Yoast/Rank Math plugin-data imports; native previews; warnings/revert | Native writes blocked; global settings/schema and wider export support |
+| AI | No dependency, no network requests | Optional BYOK later |
+
+These are working alpha workflows, not full feature parity. The comparison above
+shows the intended division of responsibility, not a claim that every item ships.
+Read [test results](docs/TEST-RESULTS.md) and [roadmap](docs/ROADMAP.md) before use.

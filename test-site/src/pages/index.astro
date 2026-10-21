@@ -1,0 +1,10 @@
+---
+import { getEmDashCollection } from "emdash";
+import { createPublicPageContext } from "emdash/page";
+import { EmDashHead } from "emdash/ui";
+const { entries } = await getEmDashCollection("posts");
+const page = createPublicPageContext({Astro,kind:"custom",title:"QuixSEO test garden",description:"A disposable site for validating QuixSEO.",canonical:Astro.url.href,siteName:"QuixSEO test garden"});
+---
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>QuixSEO test garden</title><EmDashHead page={page}/></head>
+<body><main><h1>QuixSEO test garden</h1><p>This disposable EmDash installation exercises the real sandboxed plugin.</p><ul>{entries.map(entry=><li><a href={`/posts/${entry.data.slug}`}>{entry.data.title}</a></li>)}</ul><a href="/_emdash/admin">Open EmDash</a></main></body></html>

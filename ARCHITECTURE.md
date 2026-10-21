@@ -31,7 +31,8 @@ The official site is https://docs.emdashcms.com/.
   Availability must be checked against the installed stable package.
 * `content:read` exposes paginated content, SEO panel values and public URL
   resolution. `schema:read` discovers collections and fields. `content:write`
-  writes the native `seo` object; it does not grant publication authority.
+  declares native `seo` writes in the native context, but the installed sandbox
+  bridges fail to handle them. Integration testing disproved support; see below.
   There is no atomic conditional SEO update in the examined API. SEO-only
   writes do not bump content version: comparing version alone is unsafe.
 * Plugin storage has indexed, cursor-paginated queries and revision-based
@@ -45,7 +46,7 @@ The official site is https://docs.emdashcms.com/.
   contributions. First contribution per key wins. Use JSON-LD id `primary`
   to replace the core graph. No raw HTML, scripts, fragments or second
   canonical emitter. `<title>` remains the theme's responsibility, using
-  `getSeoMeta()`. Template application writes native SEO titles explicitly.
+  `getSeoMeta()`. Templates are preview-only until the sandbox bridge supports native writes.
 * `redirects:write` includes reads and revision-guarded writes. The sandbox
   context does not expose the core 404 log: link users to core Redirects.
   Do not infer visitor paths from a rewritten `/404` metadata event.
@@ -108,8 +109,9 @@ Bulk/migration operations require a persisted preview and confirmation. Store
 before/after values, actor, input fingerprint and progress. Re-read SEO and
 plugin revisions before each mutation, preserve unrelated fields, stop on
 conflict, and only roll back values still matching the recorded result.
-Plugin-owned data supports atomic CAS; native SEO is best-effort optimistic
-concurrency and must be documented as such until upstream supplies CAS.
+Plugin-owned data supports atomic CAS. All plans containing native SEO changes
+are blocked before mutations, both because the bridge cannot perform them and
+because native concurrency needs an upstream conditional-write contract.
 
 Audits run in bounded pages and separate collection scanning from graph
 evaluation. Store generation IDs so partial scans cannot masquerade as
@@ -130,3 +132,18 @@ publishing are excluded from the first milestone. No network or secret
 permission is requested for absent features. 1.0.0 and registry publication
 remain blocked until all acceptance criteria and verified publisher identity
 are satisfied. No release workflow publishes automatically.
+
+## Integration findings — 2026-10-21
+
+The official production sandbox exposed two assumptions that were corrected:
+`seo` is treated as an unknown collection field by the bridge, and content list
+sorting does not accept `id`. QuixSEO now refuses native SEO mutations, drops
+`content:write`, and uses supported `createdAt` pagination. No privileged native
+workaround was added. docs/compatibility.md records the exact impact.
+
+The real test site required a compatible adapter and aligned Astro/Vite versions.
+The lockfile pins the installed runtime. The native panel remains responsible
+for SEO title/description/canonical/image/indexing writes. Plugin-owned config
+is live configuration, not revisioned content: an editor's confirmed social or
+schema change can affect a currently published page immediately without
+publishing its body. The UI and documentation must make that distinction clear.

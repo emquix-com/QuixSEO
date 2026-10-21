@@ -1,0 +1,13 @@
+---
+import { getEmDashEntry, getSeoMeta, getSiteSettings } from "emdash";
+import { createPublicPageContext } from "emdash/page";
+import { EmDashHead, PortableText } from "emdash/ui";
+const { entry } = await getEmDashEntry("posts", Astro.params.slug || "");
+if (!entry) return new Response("Not found", {status:404});
+const settings = await getSiteSettings();
+const seo = getSeoMeta(entry,{siteTitle:settings.title,siteUrl:Astro.url.origin,path:Astro.url.pathname});
+const page = createPublicPageContext({Astro,kind:"content",title:seo.title,pageTitle:seo.ogTitle,description:seo.description,canonical:seo.canonical,siteName:settings.title,content:{collection:"posts",id:entry.data.id,slug:entry.data.slug}});
+---
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><title>{seo.title}</title><EmDashHead page={page}/></head>
+<body><main><h1>{entry.data.title}</h1><p>{entry.data.excerpt}</p><PortableText value={entry.data.content ?? entry.data.body ?? []}/><a href="/">Home</a></main></body></html>
