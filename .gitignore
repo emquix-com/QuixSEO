@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.astro/
+.emdash/
+.wrangler/
+coverage/
+test-results/
+playwright-report/
+*.db
+*.db-*
+.env*
+!.env.example
+__pycache__/
+test-site/uploads/
+emdash-env.d.ts
+
+.cache/

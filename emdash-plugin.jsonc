@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+  "slug": "quixseo",
+  // Reserved development identity, deliberately unpublishable until Webtaculos supplies its verified Atmosphere DID.
+  "publisher": "quixseo.invalid",
+  "name": "QuixSEO",
+  "description": "Complete SEO Toolkit for EmDash — editorial guidance, structured data and reviewed site management.",
+  "license": "MIT",
+  "author": { "name": "Webtaculos", "url": "https://webtaculos.com" },
+  "security": { "url": "https://github.com/alexandru-b/QuixSEO/security" },
+  "repo": "https://github.com/alexandru-b/QuixSEO",
+  "keywords": ["seo", "metadata", "schema", "audit", "migration"],
+  "capabilities": ["content:read", "schema:read", "redirects:write", "admin.editor-draft:read"],
+  "allowedHosts": [],
+  "storage": {
+    "settings": { "indexes": [] },
+    "entries": { "indexes": [] },
+    "changes": { "indexes": ["createdAt", "actor"] },
+    "jobs": { "indexes": ["createdAt"] },
+    "reports": { "indexes": ["job", ["job", "titleKey"], ["job", "descriptionKey"], ["job", "url"]] },
+    "edges": { "indexes": [["job", "target"]] }
+  },
+  "admin": {
+    "pages": [
+      { "path": "/dashboard", "label": "Overview", "icon": "gauge", "group": "QuixSEO" },
+      { "path": "/bulk", "label": "Bulk editor", "icon": "edit", "group": "QuixSEO" },
+      { "path": "/migration", "label": "Migration", "icon": "upload", "group": "QuixSEO" },
+      { "path": "/redirects", "label": "Redirects", "icon": "arrow-right", "group": "QuixSEO" },
+      { "path": "/history", "label": "Change history", "icon": "history", "group": "QuixSEO" },
+      { "path": "/settings", "label": "Setup & settings", "icon": "settings", "group": "QuixSEO" }
+    ],
+    "editorPanels": [{ "id": "quixseo", "title": "QuixSEO · Content guidance", "route": "editor" }],
+    "editorActions": [{ "id": "analyze-draft", "label": "QuixSEO: Analyze unsaved draft", "route": "draft", "collections": ["posts", "pages"], "placement": "overflow", "draft": { "read": { "translatable": true, "fields": ["title", "body", "content", "excerpt"] } } }]
+  },
+  "release": { "requires": { "env:emdash": ">=1.3.1 <2.0.0" } }
+}

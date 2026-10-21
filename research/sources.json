@@ -1,0 +1,17 @@
+{
+  "emdash": {
+    "commit": "8da0792564d06cf2411eee2bcbb832d7a1cdfc5c"
+  },
+  "yoast": {
+    "commit": "f5360f0185d849ec2bebb437054269ed96c66633"
+  },
+  "rankmath": {
+    "commit": "50fc59587112316ad754ca3c9a26e1282795d49d"
+  },
+  "content-analyzer": {
+    "commit": "79871a4ef88fec2e5c3011d80e1cccebc149d1fe"
+  },
+  "emdash-seo": {
+    "commit": "c6cc96f286137ae921d58c7388e923f4beac4f45"
+  }
+}
