@@ -8,7 +8,7 @@ import {
   seoSchema,
   stableJson,
 } from "../domain/validation.js";
-import { entryKey, getEntry, storage } from "./context.js";
+import { entryKey, getEntry, storage, titleOf } from "./context.js";
 export interface Proposal {
   collection: string;
   id: string;
@@ -17,6 +17,8 @@ export interface Proposal {
   warnings?: string[];
 }
 export interface ChangeRow extends Proposal {
+  /** Display name for nontechnical change review; older journals may omit it. */
+  entryTitle?: string;
   beforeSeo: Seo;
   afterSeo: Seo;
   beforeConfig: EntryConfig;
@@ -83,6 +85,7 @@ export async function previewChanges(
       beforeConfig = entryConfigSchema.parse(current?.value ?? {});
     rows.push({
       ...p,
+      entryTitle: titleOf(item),
       beforeSeo,
       afterSeo: seoSchema.parse({ ...beforeSeo, ...p.seo }),
       beforeConfig,
@@ -127,6 +130,7 @@ export async function prepareNext(
     beforeConfig = entryConfigSchema.parse(cfg?.value ?? {});
   plan.rows.push({
     ...p,
+    entryTitle: titleOf(item),
     beforeSeo,
     afterSeo: seoSchema.parse({ ...beforeSeo, ...p.seo }),
     beforeConfig,
