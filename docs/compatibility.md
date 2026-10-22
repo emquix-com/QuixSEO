@@ -21,6 +21,12 @@ rollback. Even once the bridge is fixed, core needs conditional SEO writes:
 SEO-only updates do not change the content version, so version checks alone
 cannot prevent concurrent overwrites.
 
+## EmDash 1.3.1 admin UI constraints
+
+- Saved-entry plugin panels are currently mounted in the editor sidebar. The public plugin manifest's `editorPanels` contract has no placement option for an under-editor full-width panel. QuixSEO cannot relocate itself beneath the body editor without upstream EmDash support. A separate full-page SEO workspace may be developed using official admin-page routes.
+- Block Kit table badges have no semantic color property and currently render with a neutral background. QuixSEO uses compact colored circle indicators and a readable text legend instead of relying on the literal words `Green`, `Amber` or `Red`.
+- The change-review UI displays field-by-field before and after values rather than raw JSON; schema and FAQ fields are rendered as readable text. This is presentation only: confirmation, native SEO write refusal, conflict detection and rollback remain server-enforced.
+
 ## Other boundaries
 
 - `<title>` is rendered by the theme, outside `page:metadata`. Canonical and native
