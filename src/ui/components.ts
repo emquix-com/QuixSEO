@@ -105,11 +105,13 @@ export const response = (blocks: Block[], message?: string): BlockResponse => ({
   ...(message ? { toast: { type: "success" as const, message } } : {}),
 });
 export function analysisBlocks(a: Analysis): Block[] {
+  // EmDash 1.3.1's Block Kit badges have no semantic color prop. Colored
+  // symbols keep the status compact without relying on color words.
   const label = {
-    good: "Green · Checked",
-    improve: "Amber · Review",
-    problem: "Red · Fix",
-    unsupported: "Not assessed",
+    good: "🟢",
+    improve: "🟠",
+    problem: "🔴",
+    unsupported: "⚪",
   };
   return [
     {
@@ -135,6 +137,7 @@ export function analysisBlocks(a: Analysis): Block[] {
     context(
       "These are editorial checks, not a prediction of search rankings. Exact phrases and length guidelines are optional aids.",
     ),
+    context("🟢 Passed · 🟠 Review · 🔴 Needs attention · ⚪ Not assessed"),
     {
       type: "table",
       page_action_id: "checks",
