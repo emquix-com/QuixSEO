@@ -36,21 +36,49 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
   };
 
   add("SEO title (EmDash)", row.beforeSeo.title, row.afterSeo.title);
-  add("Meta description (EmDash)", row.beforeSeo.description, row.afterSeo.description);
+  add(
+    "Meta description (EmDash)",
+    row.beforeSeo.description,
+    row.afterSeo.description,
+  );
   add("Canonical URL (EmDash)", row.beforeSeo.canonical, row.afterSeo.canonical);
   add("Native social image (EmDash)", row.beforeSeo.image, row.afterSeo.image);
-  add("Hide from search engines (EmDash)", row.beforeSeo.noIndex, row.afterSeo.noIndex);
+  add(
+    "Hide from search engines (EmDash)",
+    row.beforeSeo.noIndex,
+    row.afterSeo.noIndex,
+  );
 
   add("Focus keyphrases", row.beforeConfig.keyphrases, row.afterConfig.keyphrases);
-  add("Cornerstone content", row.beforeConfig.cornerstone, row.afterConfig.cornerstone);
+  add(
+    "Cornerstone content",
+    row.beforeConfig.cornerstone,
+    row.afterConfig.cornerstone,
+  );
   add("Nofollow links", row.beforeConfig.noFollow, row.afterConfig.noFollow);
   add("Suppress snippets", row.beforeConfig.noSnippet, row.afterConfig.noSnippet);
   add("Open Graph title", row.beforeConfig.ogTitle, row.afterConfig.ogTitle);
-  add("Open Graph description", row.beforeConfig.ogDescription, row.afterConfig.ogDescription);
+  add(
+    "Open Graph description",
+    row.beforeConfig.ogDescription,
+    row.afterConfig.ogDescription,
+  );
   add("Open Graph image", row.beforeConfig.ogImage, row.afterConfig.ogImage);
-  add("X / Twitter title", row.beforeConfig.twitterTitle, row.afterConfig.twitterTitle);
-  add("X / Twitter description", row.beforeConfig.twitterDescription, row.afterConfig.twitterDescription);
-  add("X / Twitter image", row.beforeConfig.twitterImage, row.afterConfig.twitterImage);
+  add(
+    "X / Twitter title",
+    row.beforeConfig.twitterTitle,
+    row.afterConfig.twitterTitle,
+  );
+  add(
+    "X / Twitter description",
+    row.beforeConfig.twitterDescription,
+    row.afterConfig.twitterDescription,
+  );
+  add(
+    "X / Twitter image",
+    row.beforeConfig.twitterImage,
+    row.afterConfig.twitterImage,
+  );
 
   const beforeSchema = row.beforeConfig.schema;
   const afterSchema = row.afterConfig.schema;
