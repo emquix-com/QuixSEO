@@ -62,3 +62,21 @@ retained an empty fragment. QuixSEO now strips fragments from serialized URLs
 without the setter, and the production sandbox asserts valid schema IDs and
 incoming links with fragment-bearing targets. Node-only unit tests would not
 have caught this difference.
+
+## Missing URL context and scoring model 2
+
+Editor, unsaved-draft and audit analysis tolerate absent/malformed Site URLs.
+The shared analysis URL utility rejects guessed routes and malformed-base
+concatenation artifacts. URL-independent content checks remain available;
+unsupported checks are N/A with explicit coverage. Native metadata generation,
+permissions, plugin settings and change journals are unchanged.
+
+QuixSEO does not cache the Site URL: the next invocation uses the context supplied
+by EmDash. In EmDash 1.3.1 the runtime assembles site context during initialization;
+if a host continues supplying old settings, its runtime must refresh. The official
+`fixtures.site()` integration helper refreshes that runtime. Same-context unit
+coverage verifies that QuixSEO itself needs no reinitialization, reinstall or
+storage reset. A sandboxed plugin cannot force a stale host snapshot to update.
+
+Old audit reports retain their original scores. Start a new audit for model 2
+rather than mixing versions or assuming saved snapshots update automatically.

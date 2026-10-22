@@ -26,6 +26,10 @@ Implemented workflows include:
 All administration uses EmDash Block Kit. There is no custom React admin, remote
 crawler, analytics tracker or external AI request. Scores describe a documented
 checklist; they do not predict rankings or guarantee rich results.
+Scoring model 2 shows partial coverage, keeps exact-match keyphrase advice
+unscored, and works without a Site URL. Configure **EmDash → Settings** to enable
+URL-related checks. See [scoring rules](docs/scoring.md) and the
+[independent scoring audit](docs/SCORING-AUDIT.md).
 
 ## Try the development build
 

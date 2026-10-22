@@ -3,6 +3,11 @@ import type { Analysis } from "../domain/analysis.js";
 import { analyze } from "../domain/analysis.js";
 import { normalize } from "../domain/content.js";
 import { validateSchema } from "../domain/schema.js";
+import {
+  analysisUrls,
+  resolveCanonical,
+  siteUrlWarning,
+} from "../domain/urls.js";
 import type { EntryConfig, Settings } from "../domain/validation.js";
 import { bodyOf, entryConfig, settings, storage, titleOf } from "./context.js";
 export interface AuditRecord {
@@ -22,6 +27,9 @@ export interface AuditRecord {
   incoming: number | null;
 }
 export interface AuditJob {
+  modelVersion?: 2;
+  incompleteAnalyses?: number;
+  linkCoverageIncomplete?: boolean;
   id: string;
   actor: string;
   createdAt: string;
@@ -69,6 +77,9 @@ export async function startAudit(
       "Enable SEO and routability on at least one content collection first",
     );
   const job: AuditJob = {
+    modelVersion: 2,
+    incompleteAnalyses: 0,
+    linkCoverageIncomplete: false,
     id: crypto.randomUUID(),
     actor: actorId,
     createdAt: new Date().toISOString(),
@@ -109,6 +120,12 @@ export async function stepAudit(
   if (!stored) throw new Error("Audit not found");
   const job = stored.value;
   if (job.phase === "complete") return job;
+  if (job.modelVersion !== 2)
+    return {
+      ...job,
+      error:
+        "This audit used an older scoring model. Start a new site analysis to avoid mixing different scores. Existing reports are retained.",
+    };
   if (job.lease > Date.now())
     throw new Error("Audit step already running; refresh shortly");
   job.lease = Date.now() + 60000;
@@ -135,22 +152,31 @@ export async function stepAudit(
             collection.slug,
             item.id,
           );
-          const url =
-            (await ctx.content.getPublicUrl?.(collection.slug, item.id)) ?? "";
+          const urls = analysisUrls(
+            ctx.site.url,
+            await ctx.content.getPublicUrl?.(collection.slug, item.id),
+          );
+          const url = urls.page ?? "";
           const nativeTitle = item.seo?.title || "",
             description = item.seo?.description || "";
           const title = titleOf(item, collection.titleField);
           const issues: string[] = [];
+          if (!urls.site)
+            issues.push(
+              `${siteUrlWarning.title}. ${siteUrlWarning.description}`,
+            );
           if (!url)
             issues.push(
               "Published entry has no resolvable public URL; inspect routability, locale and slug.",
             );
-          if (
-            item.seo?.canonical &&
-            url &&
-            new URL(item.seo.canonical, `${new URL(ctx.site.url).origin}/`)
-              .href !== url
-          )
+          const canonical = item.seo?.canonical
+            ? resolveCanonical(item.seo.canonical, urls)
+            : null;
+          if (item.seo?.canonical && (!canonical || !url))
+            issues.push(
+              "Canonical comparison not assessed: a usable canonical and public content URL are required.",
+            );
+          if (canonical && url && canonical !== url)
             issues.push(
               "Canonical differs from the public URL; verify that consolidation is intentional.",
             );
@@ -158,7 +184,14 @@ export async function stepAudit(
           const analysis = analyze({
             title: nativeTitle || title,
             description: description || String(item.data.excerpt ?? ""),
-            url: url || ctx.site.url,
+            titleSource: nativeTitle ? "saved" : "content",
+            descriptionSource: description
+              ? "saved"
+              : item.data.excerpt
+                ? "excerpt"
+                : "missing",
+            url: urls.page,
+            siteUrl: urls.site,
             body: bodyOf(item, collection.bodyField),
             keyphrases: config.keyphrases,
             locale: item.locale || ctx.site.locale,
@@ -187,13 +220,17 @@ export async function stepAudit(
           };
           const key = `${id}:${collection.slug}:${item.id}`;
           await storage<AuditRecord>(ctx, "reports").put(key, record);
-          const edges = [...new Set(analysis.internal)]
+          const edges = [...new Set(url ? analysis.internal : [])]
             .slice(0, 100)
             .map((target, i) => ({
               id: `${key}:${i}`,
               data: { job: id, target, source: url },
             }));
           if (edges.length) await storage<Edge>(ctx, "edges").putMany(edges);
+          if (analysis.assessment.unavailable)
+            job.incompleteAnalyses = (job.incompleteAnalyses ?? 0) + 1;
+          if (!analysis.linksAssessed || !url || analysis.internal.length > 100)
+            job.linkCoverageIncomplete = true;
           job.processed++;
         }
         if (page.hasMore && page.cursor) job.cursor = page.cursor;
@@ -230,9 +267,13 @@ export async function stepAudit(
               })
             ).items.length > 1
           : false;
-        const incoming = r.url
-          ? await storage<Edge>(ctx, "edges").count({ job: id, target: r.url })
-          : 0;
+        const incoming =
+          r.url && !job.linkCoverageIncomplete
+            ? await storage<Edge>(ctx, "edges").count({
+                job: id,
+                target: r.url,
+              })
+            : null;
         r.incoming = incoming;
         const count = job.counts;
         if (!r.titleKey) count.missingTitle++;
@@ -246,8 +287,13 @@ export async function stepAudit(
           r.issues.push("Duplicate explicit SEO description in this audit.");
         }
         if (r.noIndex) count.noIndex++;
-        if (!r.analysis.internal.length) count.lowLinks++;
-        if (r.url && !incoming && !r.noIndex) {
+        if (r.analysis.linksAssessed && !r.analysis.internal.length)
+          count.lowLinks++;
+        if (incoming === null)
+          r.issues.push(
+            "Incoming links and orphan status not assessed: some content URLs or body links are unavailable in this audit. Run a new audit after resolving coverage gaps.",
+          );
+        if (r.url && incoming === 0 && !r.noIndex) {
           count.orphan++;
           r.issues.push(
             "Potentially orphaned: no incoming links from analyzed bodies. Navigation and external links are not included.",

@@ -118,7 +118,11 @@ export function analysisBlocks(a: Analysis): Block[] {
       type: "stats",
       items: [
         {
-          label: "SEO checklist",
+          label: a.checks.some(
+            (c) => c.category === "seo" && c.reason === "unavailable",
+          )
+            ? "SEO editorial checks (partial)"
+            : "SEO editorial checks",
           value: a.score === null ? "Not scored" : `${a.score}/100`,
         },
         {
@@ -130,12 +134,17 @@ export function analysisBlocks(a: Analysis): Block[] {
         },
         {
           label: "Internal / external links",
-          value: `${a.internal.length} / ${a.external.length}`,
+          value: a.linksAssessed
+            ? `${a.internal.length} / ${a.external.length}`
+            : "Not fully assessed",
         },
       ],
     },
     context(
-      "These are editorial checks, not a prediction of search rankings. Exact phrases and length guidelines are optional aids.",
+      "This score summarizes automated editorial checks, not topical depth, factual accuracy or search rankings. Keyphrase guidance is unscored. Passing optional diagnostics adds no points.",
+    ),
+    context(
+      `Automated check coverage: ${a.assessment.assessed} assessed · ${a.assessment.unavailable} unavailable · ${a.assessment.notApplicable} not applicable. N/A earns no points. ${a.assessment.unavailable ? "Partial analysis — compare scores only when the same checks are available." : "Human review of usefulness and accuracy is still needed."}`,
     ),
     {
       type: "table",
@@ -146,7 +155,10 @@ export function analysisBlocks(a: Analysis): Block[] {
       ],
       rows: a.checks.map((c) => ({
         status: label[c.status],
-        message: c.message,
+        message:
+          c.status === "unsupported"
+            ? `${c.reason === "unavailable" ? "Unavailable" : "Not applicable"}: ${c.message}`
+            : c.message,
       })),
       empty_text: "No applicable checks",
     },

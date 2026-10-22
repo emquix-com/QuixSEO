@@ -107,6 +107,11 @@ function auditBlocks(job: AuditJob): Block[] {
     context(
       "Missing counts concern explicit native SEO overrides; a theme may supply fallbacks. Counts remain partial until the audit completes. Scores do not predict rankings. Sitemap and robots configuration remain in core Settings → SEO.",
     ),
+    context(
+      job.modelVersion === 2
+        ? `Scoring model 2 · ${job.incompleteAnalyses ?? 0} entries with partial analysis. Link counts exclude unassessed entries.${job.linkCoverageIncomplete ? " Incoming links and orphan status are not assessed because link coverage is incomplete." : ""}`
+        : "Historical scoring model: start a new audit for current scores and coverage reporting.",
+    ),
     actions(
       ...(job.phase !== "complete"
         ? [button("audit-next", "Analyze next entry", job.id)]
@@ -140,11 +145,21 @@ async function reportsView(
             `${r.url || "No public route"} · Incoming body links: ${r.incoming ?? "Not assessed"}`,
           ),
           ...r.issues.map(section),
+          context(
+            r.analysis.assessment
+              ? `Coverage: ${r.analysis.assessment.assessed} assessed · ${r.analysis.assessment.unavailable} unavailable · ${r.analysis.assessment.notApplicable} not applicable.`
+              : "Historical analysis: run a new audit to see current scoring and coverage.",
+          ),
           ...r.analysis.checks
-            .filter((c) => c.status === "problem" || c.status === "improve")
+            .filter(
+              (c) =>
+                c.status === "problem" ||
+                c.status === "improve" ||
+                (c.status === "unsupported" && c.reason === "unavailable"),
+            )
             .map((c) =>
               section(
-                `${c.status === "problem" ? "Red · Fix" : "Amber · Review"}: ${c.message}`,
+                `${c.status === "problem" ? "Fix" : c.status === "unsupported" ? "N/A" : "Review"}: ${c.message}`,
               ),
             ),
         ],

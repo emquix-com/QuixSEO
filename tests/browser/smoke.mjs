@@ -141,9 +141,12 @@ try {
   });
   await panel.waitFor();
   await panel.click();
-  await page.getByText("SEO checklist", { exact: true }).waitFor();
+  await page.getByText("SEO editorial checks", { exact: true }).waitFor();
+  await expect(page.getByText(/Automated check coverage:/)).toBeVisible();
+  await expect(page.getByText("⚪ N/A", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/No images to assess/)).toBeVisible();
   await page
-    .getByText("SEO checklist", { exact: true })
+    .getByText("SEO editorial checks", { exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({ path: "screenshots/editor.jpg", quality: 45 });
   const social = `Garden social ${Date.now()}`;

@@ -31,3 +31,20 @@ are not covered by that journal. Back up before migration.
 
 **Where are 404 reports?** In EmDash core Redirects. The sandbox lacks a visitor
 404-log API; QuixSEO does not simulate one.
+
+**Why does QuixSEO say “Site URL not configured”?** Open **EmDash → Settings**
+and configure the site's absolute HTTP(S) URL. Content analysis still works;
+URL-dependent checks show N/A. QuixSEO reads the host's current URL context on
+each load and stores no fallback domain. If your EmDash development server still
+supplies old settings, refresh its runtime; no database reset or plugin reinstall
+is needed. Start a new audit to refresh existing reports.
+
+**Why did scores change?** Scoring model 2 removes free points for absent images,
+links and headings, gives useful sectioning/linking more weight, and identifies
+excerpt fallbacks. Keyphrase guidance is now unscored to avoid exact-match and
+repetition incentives. See [scoring](scoring.md) for the full calculation.
+
+**Can a partial analysis show a high score?** Yes: it describes only the checks
+that could run. Unavailable checks are not passes. Read the coverage statement
+and N/A explanations before comparing results. Accuracy and topical depth always
+need a person's judgment.

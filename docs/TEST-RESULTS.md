@@ -1,4 +1,60 @@
-# Test results — 2026-10-21
+# URL handling and scoring validation — 2026-10-22
+
+Updated from upstream `05390dc37916093000991e488c50f428b5c77c95` without
+reverting its preview/rollback improvements or compact status badges.
+Environment versions remain those listed in the historical report below.
+This remains an alpha, not a 1.0 release certification.
+
+| Check actually run for this change | Result |
+|---|---|
+| `npm run check` | Passed: strict types, Biome, 115 unit tests, official manifest validation and build/probe |
+| `npm run test:imports` | 3 passed |
+| `npm run test:sandbox` | 14 passed against the official Worker Loader runtime |
+| `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` | 8 real Node/workerd browser workflow groups passed |
+| `npm run bundle` | Passed; 239.2 KB unpacked / 123.0 KB compressed, below the 256 KB unpacked cap |
+| `git diff --check` | Passed |
+
+The 41 additional unit cases cover unusable URLs, public-URL preference,
+malformed-base artifacts, recovery without plugin reinitialization, preserved
+unrelated errors, canonical resolution, distinct article shapes, optional
+neutrality, actual score improvements, metadata provenance, incomplete coverage,
+English/French/Japanese behavior and draft settings. The updated existing tests
+also exercise legitimate N/A states rather than vacuous passes. The 10,000-entry
+pure-analyzer performance guard remains in the passing unit suite; this is not a
+production database benchmark.
+
+Five new sandbox cases cover empty/malformed site settings across the real
+editor, draft action and resumable audit, and recovery when the host refreshes
+its settings. They verify no fabricated route, no false missing-link/orphan
+counts, preserved keyphrases and completion without a URL exception. The existing
+nine permission, metadata, preview, conflict, migration and rollback cases pass.
+The official site-setting fixture restarts its host runtime internally; the
+separate unit lifecycle test proves QuixSEO itself does not cache the URL.
+
+The browser journey verifies the current upstream review UI, new coverage text,
+N/A badge and absent-image explanation, plus existing save/rollback behavior and
+exactly one canonical, description, OG title and JSON-LD graph in public HTML.
+The editor and audit screenshots were regenerated from this functioning site.
+
+The first new sandbox run found that EmDash's trailing-slash normalization can
+turn the invalid site setting `https://` into the invented host
+`https://posts/garden-care`. The fix was added and the full sandbox suite rerun
+successfully. Intermediate failures are not reported as passes.
+
+The old and new analyzers were both executed against identical documented
+fixtures; see [SCORING-AUDIT.md](SCORING-AUDIT.md#measured-implementation-results).
+The 173-word reconstruction gives 97/96 before and 79/79 after, or 71 with an
+excerpt-only description. It is not the user's unavailable original article.
+
+Current local package SHA-256:
+`37b9bb597226990eba5cb37538bd2b84a2aec182a39c1bb6c24d4932dd04dadc`.
+No registry submission or public release was made. Deployed Cloudflare behavior
+and the other release gaps below remain unverified. No dependencies, permissions,
+metadata generation or change-journal semantics were changed by this task.
+
+---
+
+# Historical test results — 2026-10-21
 
 This is evidence for **0.1.0-alpha.1**, not a production/1.0 certification.
 Environment: Linux x64, Node 24.19.0, EmDash 1.3.1, plugin-cli 0.13.4,
@@ -92,7 +148,7 @@ established by offline CLI validation. See compatibility.md and ROADMAP.md.
 | No release blockers | Not met: native SEO/platform and remaining product/QA gaps |
 | Remaining limits documented | Yes |
 
-Final local package SHA-256:
+Historical local package SHA-256:
 `3551dd9881513ae49271bc1e4ecf4e2cc1b7107d009d47fb40c218622805002b`.
 The first screenshot-inclusive package exceeded the CLI's 256 KB cap. The final
 package uses two real JPEG captures; the setup screenshot remains in source docs.

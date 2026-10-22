@@ -38,7 +38,7 @@ const base: AnalysisInput = {
   url: "https://example.com/garden-care",
   body: [
     paragraph(
-      "Garden care starts with water. However, too much water can harm roots.",
+      "Garden care starts with water and a pot that lets the roots breathe without holding excess moisture. However, too much water can harm roots.",
     ),
     paragraph("Garden care tips", "h2"),
   ],
@@ -69,13 +69,22 @@ describe("Every deterministic scoring rule", () => {
         markDefs: [{ _key: "link", _type: "link", href: "/about" }],
       },
     ];
-    expect(check("seo.internal-links")?.status).toBe("improve");
+    expect(check("seo.internal-links")?.status).toBe("unsupported");
+    expect(
+      check("seo.internal-links", {
+        body: [
+          paragraph("One idea."),
+          paragraph("Another idea."),
+          paragraph("A next step."),
+        ],
+      })?.status,
+    ).toBe("improve");
     expect(check("seo.internal-links", { body })?.status).toBe("good");
   });
   it("external links are informational, with no quota", () => {
     expect(check("seo.external-links")).toMatchObject({
       weight: 0,
-      status: "good",
+      status: "unsupported",
     });
   });
   it("alt check respects explicitly decorative images", () => {
@@ -100,7 +109,18 @@ describe("Every deterministic scoring rule", () => {
         ],
       })?.status,
     ).toBe("problem");
-    expect(check("seo.invalid-links")?.status).toBe("good");
+    expect(check("seo.invalid-links")?.status).toBe("unsupported");
+    expect(
+      check("seo.invalid-links", {
+        body: [
+          {
+            ...paragraph("Related source"),
+            children: [{ text: "Related source", marks: ["x"] }],
+            markDefs: [{ _key: "x", href: "/about" }],
+          },
+        ],
+      })?.status,
+    ).toBe("good");
   });
   it.each([
     "title",
@@ -148,7 +168,12 @@ describe("Every deterministic scoring rule", () => {
     ).toBe("improve");
   });
   it("repetition rule", () => {
-    expect(check("readability.repetition")?.status).toBe("good");
+    expect(check("readability.repetition")?.status).toBe("unsupported");
+    expect(
+      check("readability.repetition", {
+        body: [paragraph("One cat sat. Two dogs ran. Three birds sang.")],
+      })?.status,
+    ).toBe("good");
     expect(
       check("readability.repetition", {
         body: [paragraph("This page helps. This page shows. This page works.")],
@@ -156,7 +181,16 @@ describe("Every deterministic scoring rule", () => {
     ).toBe("improve");
   });
   it("transition rule", () => {
-    expect(check("readability.transitions")?.status).toBe("good");
+    expect(check("readability.transitions")?.status).toBe("unsupported");
+    expect(
+      check("readability.transitions", {
+        body: [
+          paragraph(
+            "A cat sat. A dog ran. A bird flew. A fish swam. However, a cow slept.",
+          ),
+        ],
+      })?.status,
+    ).toBe("good");
     expect(
       check("readability.transitions", {
         body: [
@@ -173,14 +207,16 @@ describe("Every deterministic scoring rule", () => {
       check("readability.ease", {
         body: [
           paragraph(
-            "Internationalization institutionalization characterization interoperability.",
+            "Internationalization institutionalization characterization interoperability. ".repeat(
+              6,
+            ),
           ),
         ],
       })?.status,
     ).toBe("improve");
   });
   it("unsupported languages and empty content are explicit", () => {
-    const a = analyze({ ...base, locale: "ja" });
+    const a = analyze({ ...base, locale: "fr" });
     expect(a.readingEase).toBeNull();
     expect(a.checks.some((c) => c.id === "readability.language")).toBe(true);
     expect(

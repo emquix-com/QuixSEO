@@ -101,6 +101,9 @@ describe("nontechnical change review", () => {
 describe("compact status indicators", () => {
   it("uses concise labeled pills for every checklist state", () => {
     const analysis: Analysis = {
+      modelVersion: 2,
+      linksAssessed: true,
+      assessment: { assessed: 3, unavailable: 0, notApplicable: 1 },
       score: 50,
       readabilityScore: 50,
       wordCount: 10,

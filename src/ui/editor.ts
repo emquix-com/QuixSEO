@@ -3,6 +3,7 @@ import type { PluginContext, SandboxedRouteContext } from "emdash/plugin";
 import { z } from "zod";
 import { analyze } from "../domain/analysis.js";
 import { validateSchema } from "../domain/schema.js";
+import { analysisUrls, siteUrlWarning } from "../domain/urls.js";
 import {
   entryConfigSchema,
   jsonInput,
@@ -140,13 +141,21 @@ export async function editor(
     ctx.schema?.getCollection(ref.collection),
   ]);
   const title = titleOf(item, collection?.titleField || "title");
-  const url =
-    (await ctx.content?.getPublicUrl?.(ref.collection, ref.id)) ??
-    new URL(`/${encodeURIComponent(item.slug || "draft")}`, ctx.site.url).href;
+  const urls = analysisUrls(
+    ctx.site.url,
+    await ctx.content?.getPublicUrl?.(ref.collection, ref.id),
+  );
   const analysis = analyze({
     title: item.seo?.title || title,
     description: item.seo?.description || String(item.data.excerpt ?? ""),
-    url,
+    titleSource: item.seo?.title ? "saved" : "content",
+    descriptionSource: item.seo?.description
+      ? "saved"
+      : item.data.excerpt
+        ? "excerpt"
+        : "missing",
+    url: urls.page,
+    siteUrl: urls.site,
     body: bodyOf(
       item,
       collection?.fields.find((f) => f.type === "portableText")?.slug,
@@ -161,19 +170,36 @@ export async function editor(
     context(
       "Complete SEO Toolkit for EmDash · Webtaculos · Saved content analysis. Save changes and reopen this panel to refresh.",
     ),
+    ...(!urls.site
+      ? [
+          {
+            type: "banner" as const,
+            variant: "alert" as const,
+            ...siteUrlWarning,
+          },
+        ]
+      : []),
     ...analysisBlocks(analysis),
     {
       type: "accordion",
       label: "Search appearance preview",
       blocks: [
         section(item.seo?.title || title),
-        context(url),
+        context(
+          urls.page ??
+            "Public URL unavailable — no route is assumed for this preview.",
+        ),
         section(
           item.seo?.description ||
             String(item.data.excerpt ?? "No description"),
         ),
         context(
           "Approximation only. Search engines may rewrite titles and snippets. Theme must render getSeoMeta().",
+        ),
+        context(
+          item.seo?.description
+            ? "Description source: saved SEO metadata."
+            : "Description source: excerpt fallback for preview; no explicit SEO description is saved.",
         ),
       ],
     },
@@ -278,15 +304,26 @@ export async function draft(
     })
     .passthrough()
     .parse(route.input);
+  const ref = route.ui.entry;
+  const [config, site, publicUrl] = await Promise.all([
+    entryConfig(ctx, ref.collection, ref.id),
+    settings(ctx),
+    ctx.content?.getPublicUrl?.(ref.collection, ref.id),
+  ]);
+  const urls = analysisUrls(ctx.site.url, publicUrl);
   const a = analyze({
     title: String(payload.draft.fields.title ?? ""),
     description: String(payload.draft.fields.excerpt ?? ""),
     body: payload.draft.fields.body ?? payload.draft.fields.content,
-    url: ctx.site.url,
-    keyphrases: [],
+    // Saved routes cannot attest an unsaved slug. Only the origin can be reused.
+    url: null,
+    siteUrl: urls.origin,
+    titleSource: "draft",
+    descriptionSource: "draft",
+    keyphrases: config.keyphrases,
     locale: route.ui.entry.locale || ctx.site.locale,
-    readability: true,
-    language: "auto",
+    readability: site.readability,
+    language: site.language,
   });
   const recommendations = a.checks
     .filter((c) => c.status === "problem" || c.status === "improve")
@@ -296,7 +333,7 @@ export async function draft(
   return {
     toast: {
       type: "info",
-      message: `Unsaved draft checklist: ${a.score ?? "—"}/100. ${recommendations || "No issues in the checked rules."} Save and open QuixSEO for full saved SEO checks.`,
+      message: `Unsaved draft checklist: ${a.score ?? "—"}/100 (partial analysis; ${a.assessment.unavailable} checks unavailable). ${!urls.site ? `${siteUrlWarning.title}. ${siteUrlWarning.description} ` : ""}${recommendations || "No issues in the checked rules."} Saved SEO metadata and unsaved URL changes are not assessed. Save and open QuixSEO for full saved SEO checks.`,
     },
   };
 }

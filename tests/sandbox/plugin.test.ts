@@ -9,9 +9,9 @@ afterEach(async () => {
   await host?.dispose();
   host = undefined;
 });
-async function setup() {
+async function setup(url = "https://example.com") {
   host = await createPluginRuntimeTestHost({
-    site: { name: "Test Garden", url: "https://example.com", locale: "en" },
+    site: { name: "Test Garden", url, locale: "en" },
   });
   await host.fixtures.collection({
     slug: "posts",
@@ -414,4 +414,103 @@ it("analyzes a host-attested unsaved draft without saving it", async () => {
   expect((await host.inspect.content.get("posts", item.id))?.data.title).toBe(
     "Garden care",
   );
+});
+
+it.each([
+  "",
+  "not a URL",
+  "https://",
+  "javascript:bad",
+])("loads editor, draft action and audit with unusable site URL %s", async (url) => {
+  const { host, admin, item } = await setup(url);
+  await host.fixtures.plugin.storage("entries", `posts:${item.id}`, {
+    keyphrases: ["garden care"],
+  });
+  const panel = await host.admin.loadEditorPanel("quixseo", "posts", item.id, {
+    user: admin,
+  });
+  noError(panel);
+  const text = JSON.stringify(panel);
+  expect(text).toContain("Site URL not configured");
+  expect(text).toContain("EmDash → Settings");
+  expect(text).toContain("Partial analysis");
+  expect(text).toContain("Garden care");
+  expect(text).toContain("⚪ N/A");
+  expect(text).not.toContain("Invalid base URL");
+  const draft = await host.admin.captureEditorDraft("posts", item.id, {
+    title: "Unsaved garden care",
+    excerpt: "Draft summary",
+    body: [
+      {
+        _type: "block",
+        _key: "a",
+        style: "normal",
+        children: [
+          {
+            _type: "span",
+            _key: "s",
+            text: "Garden care starts with the right amount of water. Check the soil and the drainage before changing how you water plants.",
+            marks: [],
+          },
+        ],
+        markDefs: [],
+      },
+    ],
+  });
+  const action = await host.admin.invokeEditorAction(
+    "analyze-draft",
+    "posts",
+    item.id,
+    { user: admin, draft },
+  );
+  expect(action.toast?.message).toContain("Site URL not configured");
+  expect(action.toast?.message).toContain("partial analysis");
+  await host.admin.act("/dashboard", "audit-start", { user: admin });
+  const job = (await host.inspect.storage.list<AuditJob>("jobs"))[0];
+  if (!job) throw new Error("Missing audit");
+  for (let n = 0; n < 3; n++)
+    noError(
+      await host.admin.act("/dashboard", "audit-next", {
+        user: admin,
+        value: job.id,
+      }),
+    );
+  const complete = await host.inspect.storage.get<AuditJob>("jobs", job.id);
+  const report = (await host.inspect.storage.list<AuditRecord>("reports"))[0]
+    ?.data;
+  expect(report?.url).toBe("");
+  expect(complete).toMatchObject({
+    phase: "complete",
+    processed: 1,
+    incompleteAnalyses: 1,
+    counts: { lowLinks: 0, orphan: 0 },
+  });
+  expect(complete?.error).toBeUndefined();
+  expect(report).toMatchObject({
+    url: "",
+    incoming: null,
+    analysis: { linksAssessed: false },
+  });
+  expect(JSON.stringify(report)).toContain("Site URL not configured");
+});
+
+it("recovers after the host updates site configuration and preserves keyphrases", async () => {
+  const { host, admin, item } = await setup("");
+  await host.fixtures.plugin.storage("entries", `posts:${item.id}`, {
+    keyphrases: ["garden care"],
+  });
+  const load = () =>
+    host.admin.loadEditorPanel("quixseo", "posts", item.id, { user: admin });
+  expect(JSON.stringify(await load())).toContain("Site URL not configured");
+  // The official fixture refreshes the host runtime after changing its setting.
+  await host.fixtures.site({ url: "https://example.com" });
+  const panel = await load();
+  noError(panel);
+  expect(JSON.stringify(panel)).not.toContain("Site URL not configured");
+  expect(JSON.stringify(panel)).toContain(
+    "https://example.com/posts/garden-care",
+  );
+  expect(
+    await host.inspect.storage.get("entries", `posts:${item.id}`),
+  ).toMatchObject({ keyphrases: ["garden care"] });
 });

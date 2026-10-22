@@ -1,3 +1,5 @@
+import { analysisUrls, usableUrl } from "./urls.js";
+
 export interface Document {
   text: string;
   paragraphs: string[];
@@ -6,6 +8,8 @@ export interface Document {
   links: string[];
   images: { alt: string; decorative: boolean }[];
   unsupported: string[];
+  structureKnown: boolean;
+  proseParagraphs: number;
 }
 export const words = (s: string): string[] =>
   s.match(/[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu) ?? [];
@@ -28,6 +32,8 @@ export function extractDocument(body: unknown): Document {
     links: [],
     images: [],
     unsupported: [],
+    structureKnown: Array.isArray(body),
+    proseParagraphs: 0,
   };
   if (typeof body === "string") {
     if (body.length > 200000)
@@ -38,6 +44,7 @@ export function extractDocument(body: unknown): Document {
         "HTML field: use Portable Text for structure and link checks",
       );
     doc.paragraphs = body.split(/\n\s*\n/u).filter(Boolean);
+    doc.proseParagraphs = doc.paragraphs.filter((p) => p.trim()).length;
     doc.sections = [body];
     doc.text = body;
     return doc;
@@ -71,6 +78,7 @@ export function extractDocument(body: unknown): Document {
         doc.headings.push({ level: Number(style[1]), text });
       } else {
         doc.paragraphs.push(text);
+        if (text.trim() && !block.listItem) doc.proseParagraphs++;
         section.push(text);
       }
       const used = new Set(
@@ -100,31 +108,56 @@ export function extractDocument(body: unknown): Document {
 }
 export function classifyLinks(
   links: string[],
-  pageUrl: string,
-): { internal: string[]; external: string[]; invalid: string[] } {
+  pageUrl: string | null | undefined,
+  siteUrl?: string | null,
+): {
+  internal: string[];
+  external: string[];
+  invalid: string[];
+  unresolved: string[];
+  classified: boolean;
+} {
+  const urls = analysisUrls(siteUrl, pageUrl);
   const result = {
     internal: [] as string[],
     external: [] as string[],
     invalid: [] as string[],
+    unresolved: [] as string[],
+    classified: Boolean(urls.origin),
   };
-  const base = new URL(pageUrl);
   for (const href of links) {
-    if (/^(?:#|mailto:|tel:)/iu.test(href)) continue;
-    try {
-      if (/[\u0000-\u0020\\]/u.test(href)) throw new Error("Invalid link");
-      const url = new URL(href, base);
-      const target = url.href.replace(/#.*$/u, "");
-      if (
-        !["http:", "https:"].includes(url.protocol) ||
-        url.username ||
-        url.password
-      )
-        throw new Error("Invalid link");
-      if (target === base.href.replace(/#.*$/u, "")) continue;
-      result[url.origin === base.origin ? "internal" : "external"].push(target);
-    } catch {
+    if (!href || /[\u0000-\u0020\u007f\\]/u.test(href)) {
       result.invalid.push(href);
+      continue;
     }
+    if (/^(?:#|mailto:|tel:)/iu.test(href)) continue;
+    let url = usableUrl(href);
+    if (!url && /^[a-z][a-z\d+.-]*:/iu.test(href)) {
+      result.invalid.push(href);
+      continue;
+    }
+    if (!url) {
+      const base = urls.page ?? (href.startsWith("/") ? urls.origin : null);
+      if (!base) {
+        result.unresolved.push(href);
+        continue;
+      }
+      try {
+        url = usableUrl(new URL(href, base).href);
+      } catch (error) {
+        if (!(error instanceof TypeError)) throw error;
+      }
+      if (!url) {
+        result.invalid.push(href);
+        continue;
+      }
+    }
+    const target = url.href.replace(/#.*$/u, "");
+    if (target === urls.page) continue;
+    if (!urls.origin) result.unresolved.push(href);
+    else
+      result[url.origin === urls.origin ? "internal" : "external"].push(target);
   }
+  result.classified = result.classified && result.unresolved.length === 0;
   return result;
 }
