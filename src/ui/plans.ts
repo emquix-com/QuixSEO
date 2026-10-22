@@ -17,7 +17,9 @@ function readableValue(value: unknown): string {
   if (typeof value === "object") {
     const parts = Object.entries(value as Record<string, unknown>)
       .filter(([, v]) => v !== null && v !== undefined && v !== "")
-      .map(([key, v]) => key.replace(/([A-Z])/gu, " $1") + ": " + readableValue(v));
+      .map(
+        ([key, v]) => `${key.replace(/([A-Z])/gu, " $1")}: ${readableValue(v)}`,
+      );
     return parts.length ? parts.join("; ") : "Not set";
   }
   return String(value);
@@ -41,7 +43,11 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
     row.beforeSeo.description,
     row.afterSeo.description,
   );
-  add("Canonical URL (EmDash)", row.beforeSeo.canonical, row.afterSeo.canonical);
+  add(
+    "Canonical URL (EmDash)",
+    row.beforeSeo.canonical,
+    row.afterSeo.canonical,
+  );
   add("Native social image (EmDash)", row.beforeSeo.image, row.afterSeo.image);
   add(
     "Hide from search engines (EmDash)",
@@ -49,14 +55,22 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
     row.afterSeo.noIndex,
   );
 
-  add("Focus keyphrases", row.beforeConfig.keyphrases, row.afterConfig.keyphrases);
+  add(
+    "Focus keyphrases",
+    row.beforeConfig.keyphrases,
+    row.afterConfig.keyphrases,
+  );
   add(
     "Cornerstone content",
     row.beforeConfig.cornerstone,
     row.afterConfig.cornerstone,
   );
   add("Nofollow links", row.beforeConfig.noFollow, row.afterConfig.noFollow);
-  add("Suppress snippets", row.beforeConfig.noSnippet, row.afterConfig.noSnippet);
+  add(
+    "Suppress snippets",
+    row.beforeConfig.noSnippet,
+    row.afterConfig.noSnippet,
+  );
   add("Open Graph title", row.beforeConfig.ogTitle, row.afterConfig.ogTitle);
   add(
     "Open Graph description",
@@ -112,83 +126,88 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
 
 export function planBlocks(plan: ChangePlan): Block[] {
   const nativeBlocked = plan.rows.some(
-    (r) => stableJson(r.beforeSeo) !== stableJson(r.afterSeo),
+    (row) => stableJson(row.beforeSeo) !== stableJson(row.afterSeo),
   );
   const pending = plan.rows.some(
-    (r) => r.status === "pending" || r.status === "applying",
+    (row) => row.status === "pending" || row.status === "applying",
   );
   const reversible = plan.rows.some(
-    (r) => r.status === "applied" || r.status === "reverting",
+    (row) => row.status === "applied" || row.status === "reverting",
   );
-  return [
+  const blocks: Block[] = [
     header("Review SEO changes"),
     context(
-      "Review current and proposed values before confirming. " +
-        plan.rows.length + " prepared; " + plan.queued.length +
-        " waiting. Confirmed QuixSEO changes to published content take effect immediately.",
-    ),
-    ...plan.rows.map((row): Block => {
-      const changes = reviewedFields(row);
-      return {
-        type: "accordion",
-        label: (row.entryTitle || row.collection + "/" + row.id) +
-          " · " + changes.length + " change" + (changes.length === 1 ? "" : "s") +
-          " · " + row.status,
-        default_open: true,
-        blocks: [
-          {
-            type: "fields",
-            fields: [
-              { label: "Content type", value: row.collection },
-              { label: "Status", value: row.status },
-              { label: "Entry ID", value: row.id },
-              { label: "Warnings", value: row.warnings?.join("; ") || "None" },
-            ],
-          },
-          ...(row.error
-            ? [{
-                type: "banner" as const,
-                variant: "error" as const,
-                description: row.error,
-              }]
-            : []),
-          ...(changes.length
-            ? changes.flatMap(
-                (change): Block[] => [
-                  section(change.label),
-                  context("Before: " + change.before),
-                  context("After: " + change.after),
-                  { type: "divider" },
-                ],
-              )
-            : [context("No field values changed.")]),
-        ],
-      };
-    }),
-    ...(plan.queued.length
-      ? [actions(button("prepare-next", "Prepare next entry", plan.id))]
-      : nativeBlocked
-        ? [{
-            type: "banner" as const,
-            variant: "alert" as const,
-            title: "Native SEO changes require EmDash",
-            description:
-              "This preview cannot be applied. Save SEO title, description, canonical, image and indexing in EmDash's SEO panel, then prepare a QuixSEO-only change.",
-          }]
-        : pending || reversible
-          ? [
-              actions(
-                ...(pending
-                  ? [button("confirm", "Confirm and apply next entry", plan.id, true)]
-                  : []),
-                ...(reversible
-                  ? [button("rollback", "Revert next unchanged result", plan.id, true)]
-                  : []),
-              ),
-            ]
-          : [context("This operation has no outstanding changes.")]),
-    context(
-      "Operation reference: " + plan.id + ". Changes are applied one entry at a time. Rollback stops if saved values changed since confirmation.",
+      `Review current and proposed values before confirming. ${plan.rows.length} prepared; ${plan.queued.length} waiting. Confirmed QuixSEO changes to published content take effect immediately.`,
     ),
   ];
+
+  for (const row of plan.rows) {
+    const changes = reviewedFields(row);
+    const entryName = row.entryTitle || `${row.collection}/${row.id}`;
+    const changeLabel = changes.length === 1 ? "change" : "changes";
+    const details: Block[] = [
+      {
+        type: "fields",
+        fields: [
+          { label: "Content type", value: row.collection },
+          { label: "Status", value: row.status },
+          { label: "Entry ID", value: row.id },
+          { label: "Warnings", value: row.warnings?.join("; ") || "None" },
+        ],
+      },
+    ];
+    if (row.error) {
+      details.push({
+        type: "banner",
+        variant: "error",
+        description: row.error,
+      });
+    }
+    if (changes.length === 0) {
+      details.push(context("No field values changed."));
+    } else {
+      for (const change of changes) {
+        details.push(
+          section(change.label),
+          context(`Before: ${change.before}`),
+          context(`After: ${change.after}`),
+          { type: "divider" },
+        );
+      }
+    }
+    blocks.push({
+      type: "accordion",
+      label: `${entryName} · ${changes.length} ${changeLabel} · ${row.status}`,
+      default_open: true,
+      blocks: details,
+    });
+  }
+
+  if (plan.queued.length) {
+    blocks.push(actions(button("prepare-next", "Prepare next entry", plan.id)));
+  } else if (nativeBlocked) {
+    blocks.push({
+      type: "banner",
+      variant: "alert",
+      title: "Native SEO changes require EmDash",
+      description:
+        "This preview cannot be applied. Save SEO title, description, canonical, image and indexing in EmDash's SEO panel, then prepare a QuixSEO-only change.",
+    });
+  } else if (pending || reversible) {
+    const options = [];
+    if (pending)
+      options.push(button("confirm", "Confirm and apply next entry", plan.id, true));
+    if (reversible)
+      options.push(button("rollback", "Revert next unchanged result", plan.id, true));
+    blocks.push(actions(...options));
+  } else {
+    blocks.push(context("This operation has no outstanding changes."));
+  }
+
+  blocks.push(
+    context(
+      `Operation reference: ${plan.id}. Changes are applied one entry at a time. Rollback stops if saved values changed since confirmation.`,
+    ),
+  );
+  return blocks;
 }
