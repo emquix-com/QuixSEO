@@ -24,7 +24,8 @@ cannot prevent concurrent overwrites.
 ## EmDash 1.3.1 admin UI constraints
 
 - Saved-entry plugin panels are currently mounted in the editor sidebar. The public plugin manifest's `editorPanels` contract has no placement option for an under-editor full-width panel. QuixSEO cannot relocate itself beneath the body editor without upstream EmDash support. A separate full-page SEO workspace may be developed using official admin-page routes.
-- Block Kit table badges have no semantic color property and currently render with a neutral background. QuixSEO uses compact colored circle indicators and a readable text legend instead of relying on the literal words `Green`, `Amber` or `Red`.
+- Block Kit table badges have no semantic color property and currently render with a neutral background. QuixSEO uses compact **Passed / Review / Fix / N/A** labels with colored circle indicators. A fully colored background like the native `Published` badge would require upstream badge variant support.
+- The sandbox editor-panel API also exposes no plugin-controlled full-content modal or alternate editor placement. Confirmation dialogs are limited to button confirmation; a dedicated full-page plugin workspace is the supported larger-screen alternative.
 - The change-review UI displays field-by-field before and after values rather than raw JSON; schema and FAQ fields are rendered as readable text. This is presentation only: confirmation, native SEO write refusal, conflict detection and rollback remain server-enforced.
 
 ## Other boundaries
