@@ -196,9 +196,13 @@ export function planBlocks(plan: ChangePlan): Block[] {
   } else if (pending || reversible) {
     const options = [];
     if (pending)
-      options.push(button("confirm", "Confirm and apply next entry", plan.id, true));
+      options.push(
+        button("confirm", "Confirm and apply next entry", plan.id, true),
+      );
     if (reversible)
-      options.push(button("rollback", "Revert next unchanged result", plan.id, true));
+      options.push(
+        button("rollback", "Revert next unchanged result", plan.id, true),
+      );
     blocks.push(actions(...options));
   } else {
     blocks.push(context("This operation has no outstanding changes."));
