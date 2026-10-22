@@ -132,8 +132,7 @@ describe("compact status indicators", () => {
     expect(
       blocks.some(
         (block) =>
-          block.type === "context" &&
-          block.text.includes("🟢 Passed ·"),
+          block.type === "context" && block.text.includes("🟢 Passed ·"),
       ),
     ).toBe(false);
   });
