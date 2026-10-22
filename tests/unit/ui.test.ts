@@ -99,7 +99,7 @@ describe("nontechnical change review", () => {
 });
 
 describe("compact status indicators", () => {
-  it("uses colored symbols, without color names, for every checklist state", () => {
+  it("uses concise labeled pills for every checklist state", () => {
     const analysis: Analysis = {
       score: 50,
       readabilityScore: 50,
@@ -124,10 +124,17 @@ describe("compact status indicators", () => {
     expect(table?.type).toBe("table");
     if (table?.type !== "table") return;
     expect(table.rows.map((row) => row.status)).toEqual([
-      "🟢",
-      "🟠",
-      "🔴",
-      "⚪",
+      "🟢 Passed",
+      "🟠 Review",
+      "🔴 Fix",
+      "⚪ N/A",
     ]);
+    expect(
+      blocks.some(
+        (block) =>
+          block.type === "context" &&
+          block.text.includes("🟢 Passed ·"),
+      ),
+    ).toBe(false);
   });
 });
