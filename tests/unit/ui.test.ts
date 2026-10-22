@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { Analysis } from "../../src/domain/analysis.js";
-import { emptySeo, entryConfigSchema, schemaConfig } from "../../src/domain/validation.js";
+import {
+  emptySeo,
+  entryConfigSchema,
+  schemaConfig,
+} from "../../src/domain/validation.js";
 import type { ChangePlan, ChangeRow } from "../../src/services/changes.js";
 import { analysisBlocks } from "../../src/ui/components.js";
 import { planBlocks, reviewedFields } from "../../src/ui/plans.js";
