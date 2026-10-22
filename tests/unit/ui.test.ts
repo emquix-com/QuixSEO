@@ -123,6 +123,11 @@ describe("compact status indicators", () => {
     const table = blocks.find((block) => block.type === "table");
     expect(table?.type).toBe("table");
     if (table?.type !== "table") return;
-    expect(table.rows.map((row) => row.status)).toEqual(["🟢", "🟠", "🔴", "⚪"]);
+    expect(table.rows.map((row) => row.status)).toEqual([
+      "🟢",
+      "🟠",
+      "🔴",
+      "⚪",
+    ]);
   });
 });
