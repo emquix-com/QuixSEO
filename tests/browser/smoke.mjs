@@ -149,6 +149,22 @@ try {
     .getByText("SEO editorial checks", { exact: true })
     .scrollIntoViewIfNeeded();
   await page.screenshot({ path: "screenshots/editor.jpg", quality: 45 });
+  await page
+    .getByRole("button", { name: "Analyze current editor", exact: true })
+    .click();
+  await expect(
+    page.getByText("Current editor — unsaved changes", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Automated check coverage:/)).toBeVisible();
+  await page
+    .getByRole("button", { name: "Refresh saved analysis", exact: true })
+    .click();
+  await expect(
+    page.getByText("Published content", { exact: true }),
+  ).toBeVisible();
+  results.push(
+    "Explicit current-editor action returns the full panel and saved analysis can be restored",
+  );
   const social = `Garden social ${Date.now()}`;
   await page
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
@@ -163,8 +179,8 @@ try {
   await page
     .getByRole("button", { name: "Preview SEO changes", exact: true })
     .click();
-  await confirm("Confirm and apply next entry");
-  await expect(page.getByText("applied", { exact: true })).toBeVisible();
+  await confirm("Apply changes");
+  await expect(page.getByText("Change applied", { exact: true })).toBeVisible();
   await publicPage.reload();
   assert.equal(
     await publicPage
@@ -182,8 +198,10 @@ try {
   results.push(
     "Editor preview/confirmation persists plugin data; anonymous HTML reflects social and BlogPosting overrides",
   );
-  await confirm("Revert next unchanged result");
-  await expect(page.getByText("rolled-back", { exact: true })).toBeVisible();
+  await confirm("Revert change");
+  await expect(
+    page.getByText("Change reverted", { exact: true }),
+  ).toBeVisible();
   await publicPage.reload();
   assert.equal(
     await publicPage
@@ -193,40 +211,62 @@ try {
   );
   results.push("Editor rollback restores previous public social metadata");
   await pluginPage("dashboard");
+  await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url().endsWith("/plugins/quixseo/admin") &&
+        r.request().method() === "POST" &&
+        r.request().postDataJSON()?.action_id === "audit-start",
+    ),
+    page
+      .getByRole("button", { name: "Start a new site review", exact: true })
+      .click(),
+  ]);
   await page
-    .getByRole("button", { name: "Start a new site review", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Analyze next entry", exact: true })
+    .getByRole("button", { name: "Refresh status", exact: true })
     .waitFor();
-  for (let step = 0; step < 10; step++) {
-    const next = page.getByRole("button", {
-      name: "Analyze next entry",
-      exact: true,
-    });
-    if (!(await next.isVisible())) break;
-    await Promise.all([
-      page.waitForResponse(
-        (r) =>
-          r.url().endsWith("/plugins/quixseo/admin") &&
-          r.request().method() === "POST",
-      ),
-      next.click(),
-    ]);
-    await page.waitForTimeout(100);
+  for (let poll = 0; poll < 30; poll++) {
+    if (await page.getByText("Completed", { exact: true }).isVisible()) break;
+    await page.waitForTimeout(1000);
+    await page
+      .getByRole("button", { name: "Refresh status", exact: true })
+      .click();
   }
+  await expect(page.getByText("Completed", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Site checklist average/)).toBeVisible();
   await expect(
-    page.getByText("Site checklist average", { exact: true }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Refresh status", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    page.getByText("Not recorded", { exact: true }),
+  ).not.toBeVisible();
   await page.screenshot({ path: "screenshots/dashboard.jpg", quality: 45 });
+  await page
+    .getByRole("button", { name: "View audit results", exact: true })
+    .click();
+  await expect(
+    page.getByText("SEO audit results", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Internal link suggestions", exact: true })
+    .click();
+  await expect(
+    page.getByText("No link suggestions yet", { exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Back to audit results", exact: true })
+    .click();
+  await expect(
+    page.getByText("SEO audit results", { exact: true }),
+  ).toBeVisible();
   results.push(
-    "Real audit advances through scan/assessment and displays completed statistics",
+    "Audit completes automatically without processing clicks and displays completed statistics",
   );
   for (const [path, text] of [
     ["bulk", "Bulk SEO editor"],
     ["migration", "Migrate WordPress SEO metadata"],
     ["redirects", "Validate redirect"],
-    ["history", "View / resume"],
+    ["history", "View change"],
   ]) {
     await pluginPage(path);
     await page.getByText(text, { exact: true }).first().waitFor();

@@ -1,6 +1,6 @@
 import type { Block, BlockResponse } from "@emdash-cms/blocks";
 import type { PluginContext, SandboxedRouteContext } from "emdash/plugin";
-import { z } from "zod";
+import { z } from "#validation";
 import { migrateRow, migrationSchema } from "../domain/migration.js";
 import { redirectIssues, redirectSchema } from "../domain/redirects.js";
 import {
@@ -13,7 +13,7 @@ import {
   text,
 } from "../domain/validation.js";
 import type { AuditJob, AuditRecord } from "../services/audit.js";
-import { relatedCandidates, startAudit, stepAudit } from "../services/audit.js";
+import { cancelAudit, resumeAudit, startAudit } from "../services/audit.js";
 import type { ChangePlan, Proposal } from "../services/changes.js";
 import {
   applyChange,
@@ -28,6 +28,13 @@ import {
   titleOf,
 } from "../services/context.js";
 import {
+  auditBlocks,
+  auditHistory,
+  findingBlocks,
+  reportsView,
+  suggestionsView,
+} from "./audits.js";
+import {
   actions,
   button,
   context,
@@ -35,7 +42,6 @@ import {
   form,
   header,
   input,
-  nav,
   response,
   section,
   select,
@@ -43,140 +49,21 @@ import {
 } from "./components.js";
 import { planBlocks } from "./plans.js";
 
-const interactionSchema = z
-  .object({
-    type: z.enum(["page_load", "block_action", "form_submit"]),
-    page: z.string().max(100).optional(),
-    action_id: z.string().max(100).optional(),
-    block_id: z.string().optional(),
-    value: z.unknown().optional(),
-    values: z.record(z.string(), z.unknown()).optional(),
-  })
-  .passthrough();
-const proposalSchema = z
-  .object({
-    collection: identifier,
-    id: identifier,
-    seo: seoSchema.partial().default({}),
-    config: entryConfigSchema.partial().default({}),
-  })
-  .strict();
-const uuid = z.string().uuid();
-function auditBlocks(job: AuditJob): Block[] {
-  const n = job.counts;
-  return [
-    header("Site SEO review"),
-    context(
-      `Audit ${job.id} · ${job.createdAt} · ${job.phase}. Published entries scanned: ${job.processed}; assessed: ${job.assessed}.`,
-    ),
-    ...(job.error
-      ? [
-          {
-            type: "banner" as const,
-            variant: "error" as const,
-            title: "Step stopped",
-            description: job.error,
-          },
-        ]
-      : []),
-    {
-      type: "stats",
-      items: [
-        {
-          label:
-            job.phase === "complete"
-              ? "Site checklist average"
-              : "Partial checklist average",
-          value: job.scored
-            ? `${Math.round(job.scoreTotal / job.scored)}/100`
-            : "Not assessed",
-        },
-        {
-          label: "Missing explicit titles / descriptions",
-          value: `${n.missingTitle} / ${n.missingDescription}`,
-        },
-        {
-          label: "Duplicate titles / descriptions",
-          value: `${n.duplicateTitle} / ${n.duplicateDescription}`,
-        },
-        { label: "Noindex entries", value: n.noIndex },
-        { label: "Without internal links", value: n.lowLinks },
-        { label: "Potentially orphaned", value: n.orphan },
-      ],
-    },
-    context(
-      "Missing counts concern explicit native SEO overrides; a theme may supply fallbacks. Counts remain partial until the audit completes. Scores do not predict rankings. Sitemap and robots configuration remain in core Settings → SEO.",
-    ),
-    context(
-      job.modelVersion === 2
-        ? `Scoring model 2 · ${job.incompleteAnalyses ?? 0} entries with partial analysis. Link counts exclude unassessed entries.${job.linkCoverageIncomplete ? " Incoming links and orphan status are not assessed because link coverage is incomplete." : ""}`
-        : "Historical scoring model: start a new audit for current scores and coverage reporting.",
-    ),
-    actions(
-      ...(job.phase !== "complete"
-        ? [button("audit-next", "Analyze next entry", job.id)]
-        : []),
-      button("audit-results", "Browse real findings", job.id),
-    ),
-  ];
-}
-async function reportsView(
-  ctx: PluginContext,
-  id: string,
-  cursor?: string,
-): Promise<Block[]> {
-  const reports = await storage<AuditRecord>(ctx, "reports").query({
-    where: { job: id },
-    limit: 10,
-    cursor,
-  });
-  return [
-    header("Audit findings"),
-    ...reports.items.map(
-      ({ id: recordId, data: r }): Block => ({
-        type: "accordion",
-        label: `${r.title} · ${r.analysis.score ?? "—"}/100`,
-        blocks: [
-          actions(
-            editLink(r.collection, r.contentId, r.locale),
-            button("related", "Linking opportunities", recordId),
-          ),
-          context(
-            `${r.url || "No public route"} · Incoming body links: ${r.incoming ?? "Not assessed"}`,
-          ),
-          ...r.issues.map(section),
-          context(
-            r.analysis.assessment
-              ? `Coverage: ${r.analysis.assessment.assessed} assessed · ${r.analysis.assessment.unavailable} unavailable · ${r.analysis.assessment.notApplicable} not applicable.`
-              : "Historical analysis: run a new audit to see current scoring and coverage.",
-          ),
-          ...r.analysis.checks
-            .filter(
-              (c) =>
-                c.status === "problem" ||
-                c.status === "improve" ||
-                (c.status === "unsupported" && c.reason === "unavailable"),
-            )
-            .map((c) =>
-              section(
-                `${c.status === "problem" ? "Fix" : c.status === "unsupported" ? "N/A" : "Review"}: ${c.message}`,
-              ),
-            ),
-        ],
-      }),
-    ),
-    ...(reports.hasMore
-      ? [
-          actions(
-            button("reports-next", "Next findings", {
-              id,
-              cursor: reports.cursor,
-            }),
-          ),
-        ]
-      : []),
-  ];
-}
+const interactionSchema = z.looseObject({
+  type: z.enum(["page_load", "block_action", "form_submit"]),
+  page: z.optional(z.string().check(z.maxLength(100))),
+  action_id: z.optional(z.string().check(z.maxLength(100))),
+  block_id: z.optional(z.string()),
+  value: z.optional(z.unknown()),
+  values: z.optional(z.record(z.string(), z.unknown())),
+});
+const proposalSchema = z.strictObject({
+  collection: identifier,
+  id: identifier,
+  seo: z._default(z.partial(seoSchema), {}),
+  config: z._default(z.partial(entryConfigSchema), {}),
+});
+const uuid = z.string().check(z.uuid());
 async function bulkView(
   ctx: PluginContext,
   values: Record<string, unknown> = {},
@@ -447,52 +334,82 @@ export async function admin(
       slug: "slug",
     });
     await storage(ctx, "settings").put("site", s);
-    return response(
-      [nav(), ...(await settingsView(ctx))],
-      "QuixSEO settings saved",
-    );
+    return response(await settingsView(ctx), "QuixSEO settings saved");
   }
   if (a === "audit-start") blocks = auditBlocks(await startAudit(ctx, actorId));
-  else if (a === "audit-next")
-    blocks = auditBlocks(await stepAudit(ctx, uuid.parse(i.value)));
-  else if (a === "audit-results")
+  else if (a === "audit-next" || a === "audit-resume")
+    blocks = auditBlocks(await resumeAudit(ctx, uuid.parse(i.value)));
+  else if (a === "audit-cancel")
+    blocks = auditBlocks(await cancelAudit(ctx, uuid.parse(i.value)));
+  else if (a === "audit-status") {
+    const job = await storage<AuditJob>(ctx, "jobs").get(uuid.parse(i.value));
+    if (!job) throw new Error("Audit not found");
+    blocks = auditBlocks(job);
+  } else if (a === "audit-results")
     blocks = await reportsView(ctx, uuid.parse(i.value));
+  else if (a?.startsWith("reports-filter:"))
+    blocks = await reportsView(
+      ctx,
+      uuid.parse(a.slice("reports-filter:".length)),
+      undefined,
+      z.enum(["all", "needs-attention", "unavailable"]).parse(v.filter),
+      z.enum(["lowest-score", "title"]).parse(v.sort),
+    );
   else if (a === "reports-next") {
     const p = z
-      .object({ id: uuid, cursor: z.string().max(4096) })
+      .object({
+        id: uuid,
+        cursor: z.string().check(z.maxLength(4096)),
+        filter: z._default(
+          z.enum(["all", "needs-attention", "unavailable"]),
+          "all",
+        ),
+        sort: z._default(z.enum(["lowest-score", "title"]), "lowest-score"),
+      })
       .parse(i.value);
-    blocks = await reportsView(ctx, p.id, p.cursor);
-  } else if (a === "related") {
+    blocks = await reportsView(ctx, p.id, p.cursor, p.filter, p.sort);
+  } else if (a === "audit-entry") {
     const r = await storage<AuditRecord>(ctx, "reports").get(
-      z.string().max(300).parse(i.value),
+      z.string().check(z.maxLength(300)).parse(i.value),
     );
     if (!r) throw new Error("Audit record not found");
-    const candidates = await storage<AuditRecord>(ctx, "reports").query({
-      where: { job: r.job },
-      limit: 100,
-    });
-    const related = relatedCandidates(
-      r,
-      candidates.items.map((x) => x.data),
-    );
     blocks = [
-      header(`Linking opportunities · ${r.title}`),
-      context(
-        "Deterministic title and focus-keyphrase overlap; suggestions cover the first 100 entries in this audit. Review relevance before adding links. No links are inserted automatically.",
-      ),
-      ...related.flatMap((x) => [
-        section(
-          `${x.entry.title}${x.entry.cornerstone ? " · Cornerstone" : ""}`,
-        ),
-        actions(
-          editLink(x.entry.collection, x.entry.contentId, x.entry.locale),
-        ),
-      ]),
-      ...(!related.length
-        ? [section("No relevant candidates in this analyzed batch.")]
-        : []),
+      header(r.title),
+      actions(button("audit-results", "Back to audit results", r.job)),
+      {
+        type: "columns",
+        columns: [
+          findingBlocks(r),
+          [
+            section("About these findings"),
+            context(
+              "Fix identifies detected problems. Review includes contextual suggestions; optional keyphrase advice is unscored. N/A means a check is unavailable or not applicable. Only published content in this audit is assessed.",
+            ),
+          ],
+        ],
+      },
     ];
-  } else if (a === "bulk-filter" || a === "bulk-next")
+  } else if (a === "related")
+    blocks = await suggestionsView(
+      ctx,
+      z.string().check(z.maxLength(300)).parse(i.value),
+    );
+  else if (a === "related-next") {
+    const p = z
+      .object({
+        id: z.string().check(z.maxLength(300)),
+        cursor: z.string().check(z.maxLength(4096)),
+      })
+      .parse(i.value);
+    blocks = await suggestionsView(ctx, p.id, p.cursor);
+  } else if (a === "audit-history" || a === "audits-next")
+    blocks = await auditHistory(
+      ctx,
+      a === "audits-next"
+        ? z.string().check(z.maxLength(4096)).parse(i.value)
+        : undefined,
+    );
+  else if (a === "bulk-filter" || a === "bulk-next")
     blocks = await bulkView(
       ctx,
       a === "bulk-next" ? z.record(z.string(), z.unknown()).parse(i.value) : v,
@@ -500,8 +417,8 @@ export async function admin(
   else if (a === "bulk-preview") {
     const proposals = z
       .array(proposalSchema)
-      .min(1)
-      .max(20)
+      .check(z.minLength(1))
+      .check(z.maxLength(20))
       .parse(jsonInput(text(48000).parse(v.changes)));
     blocks = planBlocks(await previewChanges(ctx, actorId, proposals, "bulk"));
   } else if (a === "template-preview") {
@@ -618,14 +535,17 @@ export async function admin(
     if (!ctx.redirects?.create)
       throw new Error("Redirect write capability unavailable");
     await ctx.redirects.create({ ...rule, groupName: "quixseo" });
-    return response(
-      [nav(), ...(await redirectView(ctx))],
-      "Native redirect created",
-    );
+    return response(await redirectView(ctx), "Native redirect created");
   } else if (a === "redirect-next")
-    blocks = await redirectView(ctx, z.string().max(4096).parse(i.value));
+    blocks = await redirectView(
+      ctx,
+      z.string().check(z.maxLength(4096)).parse(i.value),
+    );
   else if (a === "history-next")
-    blocks = await history(ctx, z.string().max(4096).parse(i.value));
+    blocks = await history(
+      ctx,
+      z.string().check(z.maxLength(4096)).parse(i.value),
+    );
   else if (a) throw new Error("Unknown action; reload this page");
   else
     switch (i.page) {
@@ -669,7 +589,10 @@ export async function admin(
           header("QuixSEO"),
           section("Complete SEO Toolkit for EmDash"),
           context("Webtaculos · Free, with no account or paid features"),
-          actions(button("audit-start", "Start a new site review")),
+          actions(
+            button("audit-start", "Start a new site review"),
+            button("audit-history", "Previous site reviews"),
+          ),
           ...(latest.items[0]
             ? auditBlocks(latest.items[0].data)
             : [
@@ -683,7 +606,7 @@ export async function admin(
         ];
       }
     }
-  return response([nav(), ...blocks]);
+  return response(blocks);
 }
 async function history(ctx: PluginContext, cursor?: string): Promise<Block[]> {
   const page = await storage<ChangePlan>(ctx, "changes").query({
@@ -698,15 +621,17 @@ async function history(ctx: PluginContext, cursor?: string): Promise<Block[]> {
       page_action_id: "history-page",
       columns: [
         { key: "time", label: "Created" },
+        { key: "title", label: "Content" },
         { key: "kind", label: "Operation" },
         { key: "status", label: "Rows" },
         { key: "view", label: "Review", format: "element" },
       ],
       rows: page.items.map(({ data: p }) => ({
         time: p.createdAt,
+        title: p.rows.map((r) => r.entryTitle || "Untitled entry").join(", "),
         kind: p.kind,
         status: p.rows.map((r) => r.status).join(", "),
-        view: button("view-plan", "View / resume", p.id),
+        view: button("view-plan", "View change", p.id),
       })),
       empty_text: "No QuixSEO operations yet",
     },

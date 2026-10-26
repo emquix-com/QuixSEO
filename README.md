@@ -31,6 +31,9 @@ unscored, and works without a Site URL. Configure **EmDash → Settings** to ena
 URL-related checks. See [scoring rules](docs/scoring.md) and the
 [independent scoring audit](docs/SCORING-AUDIT.md).
 
+See [editor drafts and automatic audit workflows](docs/editor-and-audits.md) for
+current-editor analysis, scheduler setup, result navigation and manual checks.
+
 ## Try the development build
 
 Use Node 24 and Python 3. The site is disposable and must not be deployed publicly

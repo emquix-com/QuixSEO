@@ -1,4 +1,4 @@
-import type { PluginContext } from "emdash/plugin";
+import type { CronEvent, PluginContext } from "emdash/plugin";
 import type { Analysis } from "../domain/analysis.js";
 import { analyze } from "../domain/analysis.js";
 import { normalize } from "../domain/content.js";
@@ -33,7 +33,14 @@ export interface AuditJob {
   id: string;
   actor: string;
   createdAt: string;
-  phase: "scan" | "assess" | "complete";
+  phase: "scan" | "assess" | "complete" | "failed" | "cancelled";
+  resumePhase?: "scan" | "assess";
+  background?: boolean;
+  schedulingError?: string;
+  lastProgressAt?: string;
+  failures?: number;
+  nextAttemptAt?: number;
+  attention?: number;
   lease: number;
   collections: { slug: string; titleField: string; bodyField: string }[];
   collectionIndex: number;
@@ -84,6 +91,9 @@ export async function startAudit(
     actor: actorId,
     createdAt: new Date().toISOString(),
     phase: "scan",
+    lastProgressAt: new Date().toISOString(),
+    attention: 0,
+    failures: 0,
     lease: 0,
     collections: collections.map((c) => ({
       slug: c.slug,
@@ -109,7 +119,8 @@ export async function startAudit(
     },
   };
   await storage<AuditJob>(ctx, "jobs").put(job.id, job);
-  return job;
+  await enableBackground(ctx, job.id);
+  return runAuditBatch(ctx, job.id);
 }
 export async function stepAudit(
   ctx: PluginContext,
@@ -118,19 +129,25 @@ export async function stepAudit(
   const jobs = storage<AuditJob>(ctx, "jobs"),
     stored = await jobs.getVersioned(id);
   if (!stored) throw new Error("Audit not found");
-  const job = stored.value;
-  if (job.phase === "complete") return job;
+  const baseline = stored.value;
+  let job = structuredClone(baseline);
+  if (["complete", "cancelled", "failed"].includes(job.phase)) return job;
+  if ((job.nextAttemptAt ?? 0) > Date.now()) return job;
   if (job.modelVersion !== 2)
-    return {
+    job = {
       ...job,
+      phase: "failed",
       error:
         "This audit used an older scoring model. Start a new site analysis to avoid mixing different scores. Existing reports are retained.",
     };
-  if (job.lease > Date.now())
-    throw new Error("Audit step already running; refresh shortly");
+  if (job.phase === "failed") {
+    await jobs.compareAndSet(id, stored.revision, job);
+    return job;
+  }
+  if (job.lease > Date.now()) return job;
   job.lease = Date.now() + 60000;
   const lock = await jobs.compareAndSet(id, stored.revision, job);
-  if (!lock.applied) throw new Error("Audit changed; retry");
+  if (!lock.applied) return (await jobs.get(id)) ?? baseline;
   try {
     if (job.phase === "scan") {
       const collection = job.collections[job.collectionIndex];
@@ -147,79 +164,89 @@ export async function stepAudit(
         });
         const item = page.items[0];
         if (item) {
-          const config: EntryConfig = await entryConfig(
-            ctx,
-            collection.slug,
-            item.id,
-          );
-          const urls = analysisUrls(
-            ctx.site.url,
-            await ctx.content.getPublicUrl?.(collection.slug, item.id),
-          );
-          const url = urls.page ?? "";
-          const nativeTitle = item.seo?.title || "",
-            description = item.seo?.description || "";
-          const title = titleOf(item, collection.titleField);
-          const issues: string[] = [];
-          if (!urls.site)
-            issues.push(
-              `${siteUrlWarning.title}. ${siteUrlWarning.description}`,
-            );
-          if (!url)
-            issues.push(
-              "Published entry has no resolvable public URL; inspect routability, locale and slug.",
-            );
-          const canonical = item.seo?.canonical
-            ? resolveCanonical(item.seo.canonical, urls)
-            : null;
-          if (item.seo?.canonical && (!canonical || !url))
-            issues.push(
-              "Canonical comparison not assessed: a usable canonical and public content URL are required.",
-            );
-          if (canonical && url && canonical !== url)
-            issues.push(
-              "Canonical differs from the public URL; verify that consolidation is intentional.",
-            );
-          if (config.schema) issues.push(...validateSchema(config.schema));
-          const analysis = analyze({
-            title: nativeTitle || title,
-            description: description || String(item.data.excerpt ?? ""),
-            titleSource: nativeTitle ? "saved" : "content",
-            descriptionSource: description
-              ? "saved"
-              : item.data.excerpt
-                ? "excerpt"
-                : "missing",
-            url: urls.page,
-            siteUrl: urls.site,
-            body: bodyOf(item, collection.bodyField),
-            keyphrases: config.keyphrases,
-            locale: item.locale || ctx.site.locale,
-            readability: job.settings.readability,
-            language: job.settings.language,
-          });
-          if (analysis.internal.length > 100)
-            issues.push(
-              "Only the first 100 internal links are indexed for this entry.",
-            );
-          const record: AuditRecord = {
-            job: id,
-            collection: collection.slug,
-            contentId: item.id,
-            title,
-            titleKey: normalize(nativeTitle),
-            descriptionKey: normalize(description),
-            url,
-            noIndex: item.seo?.noIndex ?? false,
-            locale: item.locale || ctx.site.locale,
-            analysis,
-            issues,
-            cornerstone: config.cornerstone,
-            keywords: config.keyphrases,
-            incoming: null,
-          };
           const key = `${id}:${collection.slug}:${item.id}`;
-          await storage<AuditRecord>(ctx, "reports").put(key, record);
+          let record = await storage<AuditRecord>(ctx, "reports").get(key);
+          if (!record) {
+            const config: EntryConfig = await entryConfig(
+              ctx,
+              collection.slug,
+              item.id,
+            );
+            const urls = analysisUrls(
+              ctx.site.url,
+              await ctx.content.getPublicUrl?.(collection.slug, item.id),
+            );
+            const url = urls.page ?? "";
+            const nativeTitle = item.seo?.title || "",
+              description = item.seo?.description || "";
+            const title = titleOf(item, collection.titleField);
+            const issues: string[] = [];
+            if (!urls.site)
+              issues.push(
+                `${siteUrlWarning.title}. ${siteUrlWarning.description}`,
+              );
+            if (!url)
+              issues.push(
+                "Published entry has no resolvable public URL; inspect routability, locale and slug.",
+              );
+            const canonical = item.seo?.canonical
+              ? resolveCanonical(item.seo.canonical, urls)
+              : null;
+            if (item.seo?.canonical && (!canonical || !url))
+              issues.push(
+                "Canonical comparison not assessed: a usable canonical and public content URL are required.",
+              );
+            if (canonical && url && canonical !== url)
+              issues.push(
+                "Canonical differs from the public URL; verify that consolidation is intentional.",
+              );
+            if (config.schema) issues.push(...validateSchema(config.schema));
+            const analysis = analyze({
+              title: nativeTitle || title,
+              description: description || String(item.data.excerpt ?? ""),
+              titleSource: nativeTitle ? "saved" : "content",
+              descriptionSource: description
+                ? "saved"
+                : item.data.excerpt
+                  ? "excerpt"
+                  : "missing",
+              url: urls.page,
+              siteUrl: urls.site,
+              body: bodyOf(item, collection.bodyField),
+              keyphrases: config.keyphrases,
+              locale: item.locale || ctx.site.locale,
+              readability: job.settings.readability,
+              language: job.settings.language,
+            });
+            if (analysis.internal.length > 100)
+              issues.push(
+                "Only the first 100 internal links are indexed for this entry.",
+              );
+            record = {
+              job: id,
+              collection: collection.slug,
+              contentId: item.id,
+              title,
+              titleKey: normalize(nativeTitle),
+              descriptionKey: normalize(description),
+              url,
+              noIndex: item.seo?.noIndex ?? false,
+              locale: item.locale || ctx.site.locale,
+              analysis,
+              issues,
+              cornerstone: config.cornerstone,
+              keywords: config.keyphrases,
+              incoming: null,
+            };
+            const reports = storage<AuditRecord>(ctx, "reports");
+            const created = await reports.compareAndSet(key, null, record);
+            if (!created.applied) {
+              const existing = await reports.get(key);
+              if (!existing) throw new Error("Audit snapshot unavailable");
+              record = existing;
+            }
+          }
+          const { analysis, url } = record;
           const edges = [...new Set(url ? analysis.internal : [])]
             .slice(0, 100)
             .map((target, i) => ({
@@ -300,11 +327,13 @@ export async function stepAudit(
           );
         }
         r.issues = [...new Set(r.issues)];
-        count.issues +=
+        const issueCount =
           r.issues.length +
           r.analysis.checks.filter(
             (c) => c.status === "problem" || c.status === "improve",
           ).length;
+        count.issues += issueCount;
+        if (issueCount) job.attention = (job.attention ?? 0) + 1;
         if (r.analysis.score !== null) {
           job.scoreTotal += r.analysis.score;
           job.scored++;
@@ -319,12 +348,27 @@ export async function stepAudit(
       }
     }
     delete job.error;
+    job.failures = 0;
+    job.nextAttemptAt = 0;
+    job.lastProgressAt = new Date().toISOString();
   } catch (e) {
-    job.error = e instanceof Error ? e.message : "Audit step failed";
+    // Report writes may have succeeded. Replay them, but commit counters and
+    // cursor only together after the entire step succeeds.
+    job = structuredClone(baseline);
+    job.error =
+      e instanceof Error ? e.message.slice(0, 1000) : "Audit step failed";
+    job.failures = (job.failures ?? 0) + 1;
+    job.nextAttemptAt =
+      Date.now() + Math.min(16, 2 ** (job.failures - 1)) * 60000;
+    if (job.failures >= 5) {
+      job.resumePhase = job.phase === "assess" ? "assess" : "scan";
+      job.phase = "failed";
+    }
   }
   job.lease = 0;
-  await jobs.compareAndSet(id, lock.revision, job);
-  return job;
+  const saved = await jobs.compareAndSet(id, lock.revision, job);
+  // A cancellation or another lease owner may have superseded this worker.
+  return saved.applied ? job : ((await jobs.get(id)) ?? baseline);
 }
 export function relatedCandidates(
   source: AuditRecord,
@@ -362,4 +406,112 @@ export function relatedCandidates(
     .filter((c) => c.score > 0)
     .sort((a, b) => b.score - a.score || a.entry.url.localeCompare(b.entry.url))
     .slice(0, 5);
+}
+
+const taskName = (id: string) => `audit-${id}`;
+const terminal = (job: AuditJob) =>
+  ["complete", "cancelled", "failed"].includes(job.phase);
+async function enableBackground(ctx: PluginContext, id: string): Promise<void> {
+  let schedulingError: string | undefined;
+  try {
+    if (!ctx.cron) throw new Error("Host scheduling API is unavailable");
+    // A persistent recurring task survives process crashes and does not rely on
+    // re-arming a one-shot from inside the task being deleted by EmDash.
+    await ctx.cron.schedule(taskName(id), {
+      schedule: "*/15 * * * * *",
+      data: { job: id },
+    });
+  } catch (error) {
+    schedulingError =
+      error instanceof Error
+        ? error.message.slice(0, 1000)
+        : "Could not schedule background work";
+  }
+  const jobs = storage<AuditJob>(ctx, "jobs");
+  const row = await jobs.getVersioned(id);
+  if (!row) return;
+  const next = { ...row.value, background: !schedulingError, schedulingError };
+  await jobs.compareAndSet(id, row.revision, next);
+}
+export async function runAuditBatch(
+  ctx: PluginContext,
+  id: string,
+): Promise<AuditJob> {
+  const deadline = Date.now() + 5000;
+  let job = await storage<AuditJob>(ctx, "jobs").get(id);
+  if (!job) throw new Error("Audit not found");
+  for (let n = 0; n < 25 && Date.now() < deadline; n++) {
+    if (
+      terminal(job) ||
+      job.lease > Date.now() ||
+      (job.nextAttemptAt ?? 0) > Date.now()
+    )
+      break;
+    const before = `${job.phase}:${job.collectionIndex}:${job.cursor}:${job.processed}:${job.assessed}`;
+    job = await stepAudit(ctx, id);
+    if (
+      `${job.phase}:${job.collectionIndex}:${job.cursor}:${job.processed}:${job.assessed}` ===
+      before
+    )
+      break;
+  }
+  if (terminal(job)) await ctx.cron?.cancel(taskName(id));
+  return job;
+}
+export async function auditCron(
+  event: CronEvent,
+  ctx: PluginContext,
+): Promise<void> {
+  const id = event.data?.job;
+  if (
+    typeof id !== "string" ||
+    !/^[0-9a-f-]{36}$/u.test(id) ||
+    event.name !== taskName(id)
+  )
+    return;
+  const job = await storage<AuditJob>(ctx, "jobs").get(id);
+  if (!job) {
+    await ctx.cron?.cancel(event.name);
+    return;
+  }
+  await runAuditBatch(ctx, id);
+}
+export async function cancelAudit(
+  ctx: PluginContext,
+  id: string,
+): Promise<AuditJob> {
+  const jobs = storage<AuditJob>(ctx, "jobs");
+  for (let n = 0; n < 3; n++) {
+    const row = await jobs.getVersioned(id);
+    if (!row) throw new Error("Audit not found");
+    if (terminal(row.value)) return row.value;
+    const next = { ...row.value, phase: "cancelled" as const, lease: 0 };
+    if ((await jobs.compareAndSet(id, row.revision, next)).applied) {
+      await ctx.cron?.cancel(taskName(id));
+      return next;
+    }
+  }
+  throw new Error("Audit status changed; refresh before cancelling again");
+}
+export async function resumeAudit(
+  ctx: PluginContext,
+  id: string,
+): Promise<AuditJob> {
+  const jobs = storage<AuditJob>(ctx, "jobs"),
+    row = await jobs.getVersioned(id);
+  if (!row) throw new Error("Audit not found");
+  if (row.value.phase === "cancelled" || row.value.phase === "complete")
+    return row.value;
+  if (row.value.lease > Date.now()) return row.value;
+  const next = {
+    ...row.value,
+    phase: row.value.resumePhase ?? row.value.phase,
+    failures: 0,
+    nextAttemptAt: 0,
+    error: undefined,
+  };
+  if (!(await jobs.compareAndSet(id, row.revision, next)).applied)
+    return (await jobs.get(id)) ?? row.value;
+  await enableBackground(ctx, id);
+  return runAuditBatch(ctx, id);
 }

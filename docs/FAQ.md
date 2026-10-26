@@ -22,8 +22,10 @@ analysis works with its output disabled. Full competitor coexistence is not
 certified for this alpha.
 
 **Are drafts analyzed?** Saved drafts can be analyzed in the authorized panel.
-The explicit posts/pages draft action uses a host-provided snapshot and does not
-save it. Public metadata never enumerates or reads unpublished bodies.
+The sidebar reads the current saved revision and labels unpublished changes.
+**Analyze current editor** uses a host-provided snapshot and returns the full
+checklist without saving it. Public metadata never reads unpublished bodies.
+Custom collection/field selectors are documented in [editor workflows](editor-and-audits.md).
 
 **Can I undo imports?** Plugin-owned changes can be reverted by their original
 actor if current values still match the journal. Native fields and redirects
@@ -48,3 +50,8 @@ repetition incentives. See [scoring](scoring.md) for the full calculation.
 that could run. Unavailable checks are not passes. Read the coverage statement
 and N/A explanations before comparing results. Accuracy and topical depth always
 need a person's judgment.
+
+**Must I click through every audit entry?** No. Start once and the host scheduler
+continues in bounded batches. Refresh status only displays progress. If your host
+does not run scheduled tasks, QuixSEO explains the limitation and offers Resume
+audit. Previous results remain available under Previous site reviews.

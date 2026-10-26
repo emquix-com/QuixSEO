@@ -44,3 +44,10 @@ Posts, saves test identity, publishes the fixture using core's API, exercises
 editor preview/apply/rollback, checks anonymous HTML and completes a real audit.
 It saves real screenshots in `screenshots/` and an ignored result JSON in
 test-results. Use only the disposable site.
+
+See [draft and audit design](editor-and-audits.md) for the cron lifecycle, selector
+configuration and manual regression checklist. Unit tests inject storage failures,
+expired leases and concurrent cancellation; official sandbox tests exercise real
+revision reads and scheduled tasks, including host restart. `#validation` is a
+local build alias for the existing Zod Mini entry; keep its tsconfig path and
+package import aligned so the official CLI bundles it into the isolate.

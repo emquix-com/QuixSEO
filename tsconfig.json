@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2023", "module": "ESNext", "moduleResolution": "Bundler",
+    "paths": { "#validation": ["./node_modules/zod/mini/index"] },
     "strict": true, "noUncheckedIndexedAccess": true, "noImplicitOverride": true,
     "verbatimModuleSyntax": true, "skipLibCheck": true, "noEmit": true,
     "types": ["node"], "lib": ["ES2023", "DOM"]

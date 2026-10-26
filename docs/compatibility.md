@@ -41,7 +41,8 @@ cannot prevent concurrent overwrites.
 - Audits include published routable SEO-enabled content. Navigation, menu links,
   other rendering blocks and external inbound links are absent from the graph.
   Content can change during a scan; this is not a transactional site snapshot.
-- Link suggestions inspect the first 100 audit records; extraction is bounded
+- Link suggestions inspect 100 audit records per candidate page, with explicit
+  pagination and no claim of global ranking; extraction is bounded
   to 5,000 blocks / 200,000 characters. Audit edges use the first 100 unique
   internal targets per entry. Large content may have incomplete coverage.
 - Language formulas support English only. Structural checks remain available
@@ -80,3 +81,15 @@ storage reset. A sandboxed plugin cannot force a stale host snapshot to update.
 
 Old audit reports retain their original scores. Start a new audit for model 2
 rather than mixing versions or assuming saved snapshots update automatically.
+
+## Draft and scheduler boundaries
+
+See [editor and audit workflows](editor-and-audits.md) for explicit draft selectors,
+the new revision-read capability, host scheduler requirements, retry/recovery,
+partial score comparisons and native Block Kit layout limits.
+
+The real Chromium journey also observes EmDash’s existing nested-form console
+warning when a Block Kit form is rendered inside its editor form. Apply/revert
+and editor actions pass; QuixSEO does not patch the host DOM. Single-article audit
+findings render directly because host accordions can retain closed state across
+view changes even when the next response specifies `default_open`.

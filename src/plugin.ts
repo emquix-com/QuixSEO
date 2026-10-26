@@ -3,6 +3,7 @@ import type {
   SandboxedPlugin,
   SandboxedRouteContext,
 } from "emdash/plugin";
+import { auditCron } from "./services/audit.js";
 import { metadata } from "./services/metadata.js";
 import { admin } from "./ui/admin.js";
 import { draft, editor } from "./ui/editor.js";
@@ -34,7 +35,7 @@ const safe =
     }
   };
 const plugin: SandboxedPlugin = {
-  hooks: { "page:metadata": metadata },
+  hooks: { "page:metadata": metadata, cron: auditCron },
   routes: {
     admin: { permission: "content:edit_any", handler: safe(admin) },
     editor: { permission: "content:edit_own", handler: safe(editor) },

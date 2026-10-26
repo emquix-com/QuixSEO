@@ -514,3 +514,190 @@ it("recovers after the host updates site configuration and preserves keyphrases"
     await host.inspect.storage.get("entries", `posts:${item.id}`),
   ).toMatchObject({ keyphrases: ["garden care"] });
 });
+
+const h2 = {
+  _type: "block",
+  _key: "heading",
+  style: "h2",
+  children: [
+    { _type: "span", _key: "hs", text: "Watering methods", marks: [] },
+  ],
+  markDefs: [],
+};
+it("reads saved unpublished revisions, removes headings, and returns a full explicit current-editor analysis", async () => {
+  const { host, admin, item } = await setup();
+  const initial = await host.inspect.content.get("posts", item.id);
+  if (!initial) throw new Error("Missing content");
+  const paragraphs = Array.from({ length: 5 }, (_, n) => ({
+    ...(initial.data.body as Record<string, unknown>[])[0],
+    _key: `paragraph-${n}`,
+  }));
+  expect(
+    (
+      await host.actions.content.update("posts", item.id, {
+        data: { ...initial.data, body: paragraphs },
+      })
+    ).success,
+  ).toBe(true);
+  expect((await host.actions.content.publish("posts", item.id)).success).toBe(
+    true,
+  );
+  const before = await host.inspect.content.get("posts", item.id);
+  if (!before) throw new Error("Missing published content");
+  const load = () =>
+    host.admin.loadEditorPanel("quixseo", "posts", item.id, { user: admin });
+  expect(JSON.stringify(await load())).toContain("Published content");
+  const revised = {
+    ...before.data,
+    body: [h2, ...(before.data.body as unknown[])],
+  };
+  const updated = await host.actions.content.update("posts", item.id, {
+    data: revised,
+    actor: { id: admin.id, role: 100 },
+  });
+  expect(updated.success).toBe(true);
+  const savedPanel = await load();
+  noError(savedPanel);
+  expect(JSON.stringify(savedPanel)).toContain(
+    "Saved draft — unpublished changes",
+  );
+  expect(JSON.stringify(savedPanel)).toContain(
+    "Body headings have no detected",
+  );
+  const live = await host.inspect.content.get("posts", item.id);
+  expect(live?.data).toEqual(before.data);
+  expect(live?.draftRevisionId).not.toBe(live?.liveRevisionId);
+  const snapshot = await host.admin.captureEditorDraft(
+    "posts",
+    item.id,
+    revised,
+  );
+  const current = await host.admin.actEditorPanel(
+    "quixseo",
+    "posts",
+    item.id,
+    "analyze-current",
+    { user: admin, draft: snapshot },
+  );
+  noError(current);
+  expect(JSON.stringify(current)).toContain("Current editor — unsaved changes");
+  expect(current.blocks.filter((b) => b.type === "table")).toEqual(
+    savedPanel.blocks.filter((b) => b.type === "table"),
+  );
+  expect(current.blocks.filter((b) => b.type === "stats")).toEqual(
+    savedPanel.blocks.filter((b) => b.type === "stats"),
+  );
+  expect(
+    (await host.actions.content.update("posts", item.id, { data: before.data }))
+      .success,
+  ).toBe(true);
+  const removed = JSON.stringify(await load());
+  expect(removed).not.toContain("Body headings have no detected");
+  expect(removed).toContain("Saved draft — unpublished changes");
+  const unsaved = await host.admin.actEditorPanel(
+    "quixseo",
+    "posts",
+    item.id,
+    "analyze-current",
+    {
+      user: admin,
+      draft: await host.admin.captureEditorDraft("posts", item.id, revised),
+    },
+  );
+  expect(JSON.stringify(unsaved)).toContain("Body headings have no detected");
+  expect(JSON.stringify(await load())).not.toContain(
+    "Body headings have no detected",
+  );
+});
+
+it("delivers a translatable Portable Text field with a custom name to the explicit panel action", async () => {
+  const { host, admin } = await setup();
+  await host.fixtures.collection({
+    slug: "pages",
+    label: "Pages",
+    supports: ["seo", "drafts", "revisions"],
+    urlPattern: "/{slug}",
+    fields: [
+      { slug: "title", label: "Title", type: "string", translatable: true },
+      {
+        slug: "article_text",
+        label: "Article",
+        type: "portableText",
+        translatable: true,
+      },
+    ],
+  });
+  const item = await host.fixtures.content("pages", {
+    data: { title: "Watering", article_text: [] },
+    slug: "watering",
+    status: "published",
+  });
+  const draft = await host.admin.captureEditorDraft("pages", item.id, {
+    title: "Watering",
+    article_text: [h2],
+  });
+  const result = await host.admin.actEditorPanel(
+    "quixseo",
+    "pages",
+    item.id,
+    "analyze-current",
+    { user: admin, draft },
+  );
+  noError(result);
+  expect(JSON.stringify(result)).toContain("Body headings have no detected");
+  expect(JSON.stringify(result)).not.toContain("snapshot does not include");
+});
+
+it.each([
+  0, 1, 10, 80,
+])("automatically completes %i published entries using persistent scheduled tasks, including restart", async (count) => {
+  const { host, admin, item } = await setup();
+  if (!count) {
+    expect(
+      (await host.actions.content.update("posts", item.id, { status: "draft" }))
+        .success,
+    ).toBe(true);
+  }
+  for (let n = 1; n < count; n++)
+    await host.fixtures.content("posts", {
+      data: { title: `Garden ${n}`, body: [h2] },
+      slug: `garden-${n}`,
+      status: "published",
+    });
+  noError(await host.admin.act("/dashboard", "audit-start", { user: admin }));
+  const initial = (await host.inspect.storage.list<AuditJob>("jobs"))[0];
+  if (!initial) throw new Error("Missing audit");
+  if (count === 80) {
+    expect(initial.data.phase).not.toBe("complete");
+    expect((await host.inspect.scheduledTasks()).length).toBeGreaterThan(0);
+    await host.restart();
+  }
+  const now = Date.now();
+  let job = initial.data;
+  for (let n = 1; n <= 20 && job.phase !== "complete"; n++) {
+    host.scheduled.setTime(new Date(now + n * 60000));
+    await host.scheduled.run();
+    job = (await host.inspect.storage.get<AuditJob>(
+      "jobs",
+      initial.id,
+    )) as AuditJob;
+  }
+  expect(job).toMatchObject({
+    phase: "complete",
+    processed: count,
+    assessed: count,
+    scored: count,
+  });
+  expect((await host.inspect.storage.list<AuditRecord>("reports")).length).toBe(
+    count,
+  );
+  expect(await host.inspect.scheduledTasks()).toHaveLength(0);
+  const results = await host.admin.act("/dashboard", "audit-results", {
+    value: job.id,
+    user: admin,
+  });
+  noError(results);
+  expect(JSON.stringify(results)).toContain("SEO audit results");
+  expect(JSON.stringify(results)).toContain("Back to audit");
+  if (count === 80) expect(JSON.stringify(results)).toContain("Next results");
+}, 120000);

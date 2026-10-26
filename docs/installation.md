@@ -33,3 +33,10 @@ Database, uploads, sessions and generated test results are ignored by git.
 To reset the fixture, stop its server and remove only its local database and
 uploads after deciding whether you need them. No production repository or
 Webtaculos website is involved.
+
+When updating, approve the new `content:revisions:read` capability to enable
+saved-draft analysis. No content-write or additional cron capability is required.
+For automatic audits, ensure the host runs EmDash scheduled tasks (Node scheduler
+or Cloudflare scheduled handler plus Cron Trigger). See [workflow setup](editor-and-audits.md).
+Do not replace a locally customized Windows `test-site/astro.config.mjs`; keep
+your existing platform-specific configuration.

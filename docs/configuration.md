@@ -10,15 +10,16 @@
 4. Enable metadata/schema output only for the plugin you want to own it. Turn
    QuixSEO metadata off when another plugin owns social/schema output; analysis
    still works. Core SEO remains authoritative.
-5. Save an entry and open QuixSEO for analysis. The explicit unsaved-draft action
-   supports posts/pages and gives a short toast; the full panel reads saved
-   content. Custom collections use the first Portable Text field and configured
-   title field. Unsupported blocks produce a coverage notice.
+5. Save an entry and open QuixSEO. The sidebar uses its saved unpublished revision
+   when available and identifies the content source. Choose **Analyze current editor**
+   to inspect unsaved fields in the full sidebar. See [editor and audit workflows](editor-and-audits.md)
+   for collection/field selectors and partial coverage. Unsupported blocks are explicit.
 6. Set phrases, cornerstone, additional nofollow/nosnippet, social overrides or
    schema. Preview the change, review before/after values, and confirm. Native media IDs and relative canonical paths are preserved. Native
    fields must remain unchanged in this form: edit those in EmDash's SEO panel.
-7. Start an audit from Overview and continue one entry at a time. The scan and
-   link evaluation are separate phases. Counts are partial until complete.
+7. Start an audit once from Overview. The host scheduler advances bounded scan
+   and assessment batches. Use Refresh status to inspect progress, or Resume audit
+   if scheduling is unavailable. Counts remain provisional until both phases finish.
 
 Editors can use site tools; authors can use the panel on entries they may edit.
 Only administrators save site settings, create redirects or prepare migrations.
@@ -36,5 +37,5 @@ Confirmed QuixSEO social/schema changes are live configuration and can affect
 an already-published page immediately; they are not staged with the body draft.
 
 There is no automatic content publishing, link insertion, keyword stuffing target,
-background crawler or scheduled full-site scan. Existing audit snapshots do not
+background crawler or periodic automatic creation of new audits. Existing audit snapshots do not
 refresh when content changes; start a new audit for current results.

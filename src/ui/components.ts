@@ -56,7 +56,7 @@ export const button = (
   id: string,
   label: string,
   value?: unknown,
-  confirm = false,
+  confirm: boolean | string = false,
 ): ActionElement => ({
   type: "button",
   action_id: id,
@@ -66,7 +66,10 @@ export const button = (
     ? {
         confirm: {
           title: label,
-          text: "Apply the reviewed change to saved data? This does not publish content.",
+          text:
+            typeof confirm === "string"
+              ? confirm
+              : "Apply the reviewed change to saved data? This does not publish content.",
           confirm: "Confirm",
           deny: "Cancel",
         },
@@ -91,15 +94,6 @@ export const pageLink = (path: string, label: string): ActionElement => ({
   label,
   target: { kind: "plugin-page", path },
 });
-export const nav = (): Block =>
-  actions(
-    pageLink("/dashboard", "Overview"),
-    pageLink("/bulk", "Bulk editor"),
-    pageLink("/migration", "Migration"),
-    pageLink("/redirects", "Redirects"),
-    pageLink("/history", "History"),
-    pageLink("/settings", "Settings"),
-  );
 export const response = (blocks: Block[], message?: string): BlockResponse => ({
   blocks,
   ...(message ? { toast: { type: "success" as const, message } } : {}),

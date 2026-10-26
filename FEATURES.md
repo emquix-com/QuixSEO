@@ -29,15 +29,15 @@ QuixSEO implementation status is updated after verification.
 
 | Module | Current behavior | Remaining work |
 |---|---|---|
-| Dashboard | Real partial/completed audit counts, duplicate overrides, noindex, orphan candidates, findings links | Severity filters, prioritized site-wide action queue |
-| Editor | Saved-entry analysis; explicit unsaved posts/pages toast; plugin-config review/save/revert | Native SEO writes blocked; richer interactive preview |
+| Dashboard | Status/coverage, completed averages, audit history, paginated findings with page filters | Global severity sorting, prioritized site-wide action queue |
+| Editor | Saved draft revision analysis; explicit current-editor full sidebar; source/coverage labels; plugin-config review/save/revert | Native SEO writes blocked; richer interactive preview |
 | Readability | Structural checks and English-only formula/rules | Additional tested language packs |
 | Search appearance | Core field reuse, social overrides, fallback image/description, template previews | Native title/description/template application blocked |
 | Schema | Ten validated types, linked graph, original JSON controls | Accessible type-specific visual forms, broader properties |
-| Audit | One-entry steps with restartable state, duplicate and link graph evaluation | Full technical crawl, known-target broken links, sitemap/robots verification |
+| Audit | Automatic bounded cron batches, cancellation/recovery, duplicate/link graph evaluation | Full technical crawl, known-target broken links, sitemap/robots verification |
 | Redirects / 404 | Core rules list/create; strict path validation; one-rule import/page export; core 404 guidance | Whole-site graph and pattern conflict checks, destination availability |
 | Bulk | Page filtering, JSON previews, actor-bound CAS writes/history/revert for plugin data | Native writes blocked; field-based bulk UI and site-wide filtering |
-| Linking | Incoming/outgoing counts, cornerstone, local relevance suggestions (first 100 records) | Full graph candidate pagination, custom blocks |
+| Linking | Incoming/outgoing counts, cornerstone, local relevance suggestions (100 candidates/page, paginated) | Global relevance ranking, custom blocks |
 | Migration | Local WXR mapping, Yoast/Rank Math plugin-data imports; native previews; warnings/revert | Native writes blocked; global settings/schema and wider export support |
 | AI | No dependency, no network requests | Optional BYOK later |
 

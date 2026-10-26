@@ -54,7 +54,7 @@ describe("nontechnical change review", () => {
         after: "Improve Your WooCommerce Checkout",
       },
     ]);
-    const blocks = planBlocks(samplePlan(row));
+    const blocks = planBlocks(samplePlan(row), "editor");
     const text = JSON.stringify(blocks);
     expect(text).toContain("How to Improve WooCommerce Checkout Conversion");
     expect(text).toContain("Before: Not set");
@@ -62,6 +62,42 @@ describe("nontechnical change review", () => {
     expect(text).not.toContain('"type":"code"');
     expect(text).not.toContain('"type":"columns"');
     expect(text).not.toContain("Before: woocommerce checkout");
+  });
+
+  it("uses contextual outcomes and single-entry actions, with technical details collapsed", () => {
+    for (const [status, heading, label] of [
+      ["pending", "Review changes", "Apply changes"],
+      ["applied", "Change applied", "Revert change"],
+      ["rolled-back", "Change reverted", ""],
+    ] as const) {
+      const blocks = planBlocks(samplePlan(sampleRow(status)), "editor");
+      const text = JSON.stringify(blocks);
+      expect(text).toContain(heading);
+      if (label) expect(text).toContain(label);
+      expect(text).not.toContain('"type":"fields"');
+      expect(text).not.toContain('"type":"columns"');
+      expect(
+        blocks
+          .filter(
+            (b) => b.type === "accordion" && b.label === "Advanced details",
+          )
+          .every((b) => b.type === "accordion" && !b.default_open),
+      ).toBe(true);
+    }
+    const multi = samplePlan(sampleRow());
+    multi.rows.push({ ...sampleRow(), id: "second-entry" });
+    expect(JSON.stringify(planBlocks(multi))).toContain("Apply next entry");
+    multi.rows = multi.rows.map((r) => ({ ...r, status: "applied" }));
+    expect(JSON.stringify(planBlocks(multi))).toContain(
+      "Revert next unchanged result",
+    );
+    expect(
+      planBlocks(multi).some(
+        (b) =>
+          b.type === "accordion" &&
+          b.blocks.some((child) => child.type === "columns"),
+      ),
+    ).toBe(true);
   });
 
   it("shows semantic schema fields, not raw JSON", () => {

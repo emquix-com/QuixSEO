@@ -147,3 +147,25 @@ for SEO title/description/canonical/image/indexing writes. Plugin-owned config
 is live configuration, not revisioned content: an editor's confirmed social or
 schema change can affect a currently published page immediately without
 publishing its body. The UI and documentation must make that distinction clear.
+
+## Draft and background execution — 2026-10-26
+
+Verified against installed EmDash 1.3.1 and the reference source: `plugins/types.ts`
+(revision and draft contracts), plugin context/bridge `getRevision`, `cron`
+executor and scheduler, and Block Kit types. See [the implementation contract](docs/editor-and-audits.md).
+`editor-content.ts` resolves only the current entry's draft pointer and keeps
+analysis separate from public metadata. Explicit editor actions receive authorized
+snapshots; panel loads do not. Static draft selectors require explicit collections.
+
+The `cron` hook resumes plugin-scoped persisted jobs in bounded batches. A recurring
+task is used because re-arming a same-name one-shot inside its callback would race
+with EmDash's post-callback deletion. Jobs retain their own CAS/lease protection
+in addition to host task claims. Reports use create-only snapshots, stable edge
+keys, and atomic cursor/counter commits for replay. Transient failure backoff and
+terminal cleanup prevent immediate retry loops. No browser polling drives work.
+
+The expanded backend exceeded the registry's 128 KiB per-file cap with classic
+Zod. The same pinned Zod dependency's Mini API preserves schemas/checks/defaults
+with a smaller bundle. `#validation` resolves via package imports in tests and a
+TypeScript path during CLI builds; plugin-cli 0.13.4 otherwise externalizes
+`zod/mini`, which is unusable in the isolate. No host/tooling patches are used.

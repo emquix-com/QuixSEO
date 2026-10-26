@@ -1,3 +1,63 @@
+# Draft workflow and automatic audit validation — 2026-10-26
+
+Target: EmDash 1.3.1, Node 24.19.0; the same pinned official CLI, sandbox runner
+and test host as the historical reports. This is an alpha, not 1.0 certification.
+
+| Check actually run | Result |
+|---|---|
+| `npm run check` | Passed: strict types, Biome, 134 unit tests, official manifest validation and build/probe |
+| `npm run test:sandbox` | 20 passed with the production-compatible Worker Loader / D1 host |
+| `npm run test:imports` | 3 passed |
+| `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` | 9 real Node/workerd workflow groups passed, including results/link navigation |
+| `npm run bundle` | Passed: 225.6 KB unpacked, 131.2 KB compressed; backend 98.25 kB (CLI build units) |
+| `git diff --check` | Passed |
+
+New unit regressions cover current-entry revision selection, missing/denied/wrong
+revision fallback, configured body fields, explicit unsaved snapshots, matching
+saved/current scores and coverage, 0/1/10/120 posts plus a second collection,
+scan and assessment write interruption, delayed retries and failure recovery,
+concurrent workers, cancellation, expired leases, unavailable scheduling, legacy
+scoring jobs, results navigation, candidate pagination beyond 100, and single vs
+multiple-entry review labels. Existing score/performance, metadata, validation,
+schema, redirect, import and change-protection tests remain in the passing suite.
+
+New sandbox tests save and remove H2 revisions without publishing, compare full
+saved/current checklists and scores, verify the published body stays unchanged,
+and deliver a custom translatable Portable Text field to the sidebar. Automatic
+audit tests cover 0, 1, 10 and 80 published entries; the 80-entry job survives a
+host restart and finishes solely through scheduled-task invocations. Counts and
+records match eligible entries; terminal jobs remove their scheduled tasks.
+Existing authorization, unpublished-content exclusion, migration rollback,
+native-write refusal and conditional conflict tests pass unchanged in substance.
+
+The real Chromium journey exercises the explicit sidebar action, Apply changes /
+Revert change, public OG/schema output and tag deduplication, automatic review
+completion, View audit results, direct single-article findings, link-suggestion
+empty state and Back navigation. Screenshots were refreshed from that site.
+The test waits for the new start response rather than accepting a previous
+completed audit. An intermediate browser failure exposed accordion state reuse;
+single-article findings now render directly, and the journey was rerun.
+
+EmDash still logs its existing nested-form console warning in the editor; no
+uncaught page exceptions were reported, and the tested actions work. No core or
+CSS workaround was added. Linux Chromium and production-compatible sandbox tests
+do not certify Windows or a deployed Cloudflare scheduler. The user's Windows
+`test-site/astro.config.mjs` was not changed.
+
+The classic validation build initially exceeded EmDash's 128 KiB backend limit.
+Switching to the same pinned Zod dependency's Mini API and bundling it through a
+local build alias fixed packaging without dropping validation or adding a runtime
+dependency. All suites above ran with the Mini implementation.
+
+Package SHA-256:
+`37fa954feccb75c405c484b966a1d4393528aeb8323cffc8414066467b46b59b`.
+
+Remaining limits and suggested manual cases: [editor/audit workflows](editor-and-audits.md).
+The added permission is `content:revisions:read`; no content-write, network or
+extra cron capability is requested. No release or registry submission was made.
+
+---
+
 # URL handling and scoring validation — 2026-10-22
 
 Updated from upstream `05390dc37916093000991e488c50f428b5c77c95` without

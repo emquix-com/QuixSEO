@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — draft workflow and automatic audits (2026-10-26)
+
+- Read the current entry’s saved draft revision with the new `content:revisions:read` capability; label fallback and current-editor sources honestly.
+- Add **Analyze current editor** to the sidebar with full analysis, configured Portable Text fields and equivalent saved SEO/settings. Preserve scoring model 2.
+- Schedule durable bounded audit batches, with retry backoff, leases, cancellation, restart recovery and explicit manual fallback.
+- Improve dashboard hierarchy, paginated audit results/history, candidate pagination and internal-link empty states.
+- Use contextual review headings, single-entry Apply/Revert labels, vertical sidebar metadata and collapsed technical details; remove redundant navigation.
+- Use Zod 4.3.6 Mini from the existing dependency to keep the backend below EmDash’s 128 KB file cap; preserve strict validation rules.
+- Add regression coverage and [workflow/manual-test documentation](docs/editor-and-audits.md). No public release or registry submission.
+
 ## Unreleased — URL resilience and scoring model 2 (2026-10-22)
 
 - Load saved and unsaved content analysis without a configured Site URL; show

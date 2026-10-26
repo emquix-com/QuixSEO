@@ -1,7 +1,14 @@
 import type { Block } from "@emdash-cms/blocks";
 import { stableJson } from "../domain/validation.js";
 import type { ChangePlan, ChangeRow } from "../services/changes.js";
-import { actions, button, context, header, section } from "./components.js";
+import {
+  actions,
+  button,
+  context,
+  header,
+  pageLink,
+  section,
+} from "./components.js";
 
 export interface ReviewedField {
   label: string;
@@ -124,7 +131,13 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
   return changes;
 }
 
-export function planBlocks(plan: ChangePlan): Block[] {
+export function planBlocks(
+  plan: ChangePlan,
+  surface: "editor" | "page" = "page",
+): Block[] {
+  const single = plan.rows.length + plan.queued.length === 1;
+  const labelStatus = (s: string) =>
+    s === "rolled-back" ? "Reverted" : s.charAt(0).toUpperCase() + s.slice(1);
   const nativeBlocked = plan.rows.some(
     (row) => stableJson(row.beforeSeo) !== stableJson(row.afterSeo),
   );
@@ -135,27 +148,41 @@ export function planBlocks(plan: ChangePlan): Block[] {
     (row) => row.status === "applied" || row.status === "reverting",
   );
   const blocks: Block[] = [
-    header("Review SEO changes"),
+    header(
+      pending || plan.queued.length
+        ? "Review changes"
+        : plan.rows.every((r) => r.status === "rolled-back")
+          ? "Change reverted"
+          : plan.rows.every((r) => r.status === "applied")
+            ? "Change applied"
+            : "Change details",
+    ),
     context(
-      `Review current and proposed values before confirming. ${plan.rows.length} prepared; ${plan.queued.length} waiting. Confirmed QuixSEO changes to published content take effect immediately.`,
+      pending || plan.queued.length
+        ? `Review the proposed changes. ${plan.rows.length} prepared; ${plan.queued.length} waiting. Applying QuixSEO metadata to published content takes effect immediately.`
+        : "The original before/after comparison is retained below as change history.",
     ),
   ];
 
+  if (surface === "page")
+    blocks.splice(
+      1,
+      0,
+      actions(pageLink("/history", "Back to change history")),
+    );
+
   for (const row of plan.rows) {
     const changes = reviewedFields(row);
-    const entryName = row.entryTitle || `${row.collection}/${row.id}`;
+    const entryName = row.entryTitle || "Untitled entry";
     const changeLabel = changes.length === 1 ? "change" : "changes";
-    const details: Block[] = [
-      {
-        type: "fields",
-        fields: [
-          { label: "Content type", value: row.collection },
-          { label: "Status", value: row.status },
-          { label: "Entry ID", value: row.id },
-          { label: "Warnings", value: row.warnings?.join("; ") || "None" },
-        ],
-      },
+    const summary: Block[] = [
+      section(
+        `Content type: ${row.collection.charAt(0).toUpperCase() + row.collection.slice(1).replace(/[_-]/gu, " ")}`,
+      ),
+      section(`Status: ${labelStatus(row.status)}`),
+      section(`Warnings: ${row.warnings?.join("; ") || "None"}`),
     ];
+    const details: Block[] = [];
     if (row.error) {
       details.push({
         type: "banner",
@@ -177,9 +204,35 @@ export function planBlocks(plan: ChangePlan): Block[] {
     }
     blocks.push({
       type: "accordion",
-      label: `${entryName} · ${changes.length} ${changeLabel} · ${row.status}`,
+      label: `${entryName} · ${labelStatus(row.status)} · ${changes.length} ${changeLabel}`,
       default_open: true,
-      blocks: details,
+      blocks:
+        surface === "editor"
+          ? [
+              ...summary,
+              ...details,
+              {
+                type: "accordion",
+                label: "Advanced details",
+                blocks: [context(`Entry ID: ${row.id}`)],
+              },
+            ]
+          : [
+              {
+                type: "columns",
+                columns: [
+                  details,
+                  [
+                    ...summary,
+                    {
+                      type: "accordion",
+                      label: "Advanced details",
+                      blocks: [context(`Entry ID: ${row.id}`)],
+                    },
+                  ],
+                ],
+              },
+            ],
     });
   }
 
@@ -197,11 +250,21 @@ export function planBlocks(plan: ChangePlan): Block[] {
     const options = [];
     if (pending)
       options.push(
-        button("confirm", "Confirm and apply next entry", plan.id, true),
+        button(
+          "confirm",
+          single ? "Apply changes" : "Apply next entry",
+          plan.id,
+          true,
+        ),
       );
     if (reversible)
       options.push(
-        button("rollback", "Revert next unchanged result", plan.id, true),
+        button(
+          "rollback",
+          single ? "Revert change" : "Revert next unchanged result",
+          plan.id,
+          true,
+        ),
       );
     blocks.push(actions(...options));
   } else {
@@ -209,9 +272,12 @@ export function planBlocks(plan: ChangePlan): Block[] {
   }
 
   blocks.push(
-    context(
-      `Operation reference: ${plan.id}. Changes are applied one entry at a time. Rollback stops if saved values changed since confirmation.`,
-    ),
+    context("Reverting stops if saved values changed since this operation."),
+    {
+      type: "accordion",
+      label: "Advanced details",
+      blocks: [context(`Operation reference: ${plan.id}`)],
+    },
   );
   return blocks;
 }

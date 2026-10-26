@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "#validation";
 import type { EntryConfig, Seo } from "./validation.js";
 import {
   entryConfigSchema,
@@ -7,15 +7,16 @@ import {
   text,
 } from "./validation.js";
 
-const sourceSchema = z
-  .object({
-    source: z.enum(["yoast", "rankmath"]),
-    collection: identifier,
-    id: identifier,
-    meta: z.record(z.string().max(200), z.unknown()),
-  })
-  .strict();
-export const migrationSchema = z.array(sourceSchema).min(1).max(20);
+const sourceSchema = z.strictObject({
+  source: z.enum(["yoast", "rankmath"]),
+  collection: identifier,
+  id: identifier,
+  meta: z.record(z.string().check(z.maxLength(200)), z.unknown()),
+});
+export const migrationSchema = z
+  .array(sourceSchema)
+  .check(z.minLength(1))
+  .check(z.maxLength(20));
 export interface MigrationRow {
   collection: string;
   id: string;
@@ -162,8 +163,8 @@ export function migrateRow(
   }
   for (const key of Object.keys(row.meta))
     if (!used.has(key)) warnings.push(`Not imported: ${key}`);
-  seoSchema.partial().parse(seo);
-  entryConfigSchema.partial().parse(config);
+  z.partial(seoSchema).parse(seo);
+  z.partial(entryConfigSchema).parse(config);
   if (seo.noIndex && config.noFollow === false)
     warnings.push(
       "EmDash core noindex also means nofollow; review this semantic difference.",

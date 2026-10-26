@@ -1,9 +1,8 @@
 import type { Block, BlockResponse } from "@emdash-cms/blocks";
 import type { PluginContext, SandboxedRouteContext } from "emdash/plugin";
-import { z } from "zod";
-import { analyze } from "../domain/analysis.js";
+import { z } from "#validation";
 import { validateSchema } from "../domain/schema.js";
-import { analysisUrls, siteUrlWarning } from "../domain/urls.js";
+import { siteUrlWarning } from "../domain/urls.js";
 import {
   entryConfigSchema,
   jsonInput,
@@ -13,17 +12,12 @@ import {
 } from "../domain/validation.js";
 import type { ChangePlan } from "../services/changes.js";
 import { applyChange, previewChanges } from "../services/changes.js";
+import { actor, storage } from "../services/context.js";
+import { editorContent } from "../services/editor-content.js";
 import {
-  actor,
-  bodyOf,
-  entryConfig,
-  getEntry,
-  settings,
-  storage,
-  titleOf,
-} from "../services/context.js";
-import {
+  actions,
   analysisBlocks,
+  button,
   context,
   form,
   header,
@@ -34,26 +28,24 @@ import {
 } from "./components.js";
 import { planBlocks } from "./plans.js";
 
-const editorValues = z
-  .object({
-    title: text(300),
-    description: text(1000),
-    canonical: text(2048),
-    image: text(2048),
-    noIndex: z.boolean(),
-    keyphrases: text(2500),
-    cornerstone: z.boolean(),
-    noFollow: z.boolean(),
-    noSnippet: z.boolean(),
-    ogTitle: text(300),
-    ogDescription: text(1000),
-    ogImage: text(2048),
-    twitterTitle: text(300),
-    twitterDescription: text(1000),
-    twitterImage: text(2048),
-    schema: text(20000),
-  })
-  .strict();
+const editorValues = z.strictObject({
+  title: text(300),
+  description: text(1000),
+  canonical: text(2048),
+  image: text(2048),
+  noIndex: z.boolean(),
+  keyphrases: text(2500),
+  cornerstone: z.boolean(),
+  noFollow: z.boolean(),
+  noSnippet: z.boolean(),
+  ogTitle: text(300),
+  ogDescription: text(1000),
+  ogImage: text(2048),
+  twitterTitle: text(300),
+  twitterDescription: text(1000),
+  twitterImage: text(2048),
+  schema: text(20000),
+});
 export async function editor(
   route: SandboxedRouteContext,
   ctx: PluginContext,
@@ -63,20 +55,19 @@ export async function editor(
     throw new Error("Open QuixSEO from a saved content entry");
   const ref = route.ui.entry;
   const interaction = z
-    .object({
+    .looseObject({
       type: z.enum(["panel_load", "form_submit", "block_action"]),
-      action_id: z.string().optional(),
-      value: z.unknown().optional(),
-      values: z.unknown().optional(),
-      block_id: z.string().optional(),
+      action_id: z.optional(z.string()),
+      value: z.optional(z.unknown()),
+      values: z.optional(z.unknown()),
+      block_id: z.optional(z.string()),
     })
-    .passthrough()
     .parse(route.input);
   if (
     interaction.action_id === "confirm" ||
     interaction.action_id === "rollback"
   ) {
-    const id = z.string().uuid().parse(interaction.value);
+    const id = z.string().check(z.uuid()).parse(interaction.value);
     const previous = await storage<ChangePlan>(ctx, "changes").get(id);
     if (
       !previous ||
@@ -93,7 +84,7 @@ export async function editor(
       id,
       interaction.action_id === "rollback",
     );
-    return response(planBlocks(plan));
+    return response(planBlocks(plan, "editor"));
   }
   if (interaction.action_id === "preview-editor") {
     const values = editorValues.parse(interaction.values);
@@ -132,44 +123,65 @@ export async function editor(
       [{ collection: ref.collection, id: ref.id, seo, config }],
       "editor",
     );
-    return response(planBlocks(plan));
+    return response(planBlocks(plan, "editor"));
   }
-  const [item, config, site, collection] = await Promise.all([
-    getEntry(ctx, ref.collection, ref.id),
-    entryConfig(ctx, ref.collection, ref.id),
-    settings(ctx),
-    ctx.schema?.getCollection(ref.collection),
-  ]);
-  const title = titleOf(item, collection?.titleField || "title");
-  const urls = analysisUrls(
-    ctx.site.url,
-    await ctx.content?.getPublicUrl?.(ref.collection, ref.id),
-  );
-  const analysis = analyze({
-    title: item.seo?.title || title,
-    description: item.seo?.description || String(item.data.excerpt ?? ""),
-    titleSource: item.seo?.title ? "saved" : "content",
-    descriptionSource: item.seo?.description
-      ? "saved"
-      : item.data.excerpt
-        ? "excerpt"
-        : "missing",
-    url: urls.page,
-    siteUrl: urls.site,
-    body: bodyOf(
-      item,
-      collection?.fields.find((f) => f.type === "portableText")?.slug,
-    ),
-    keyphrases: config.keyphrases,
-    locale: item.locale || ctx.site.locale,
-    readability: site.readability,
-    language: site.language,
-  });
+  const current = interaction.action_id === "analyze-current";
+  const snapshot = current
+    ? z
+        .object({
+          draft: z
+            .unknown()
+            .check(
+              z.refine(
+                (v) => v !== undefined,
+                "Current editor content was not supplied. Reopen this entry and retry the action.",
+              ),
+            ),
+        })
+        .parse(route.input).draft
+    : undefined;
+  const {
+    item,
+    config,
+    site,
+    title,
+    urls,
+    analysis,
+    source,
+    warning,
+    detail,
+    data,
+  } = await editorContent(ctx, ref, snapshot);
   const blocks: Block[] = [
     header("QuixSEO"),
+    context("Complete SEO Toolkit for EmDash · Webtaculos"),
+    section(source),
     context(
-      "Complete SEO Toolkit for EmDash · Webtaculos · Saved content analysis. Save changes and reopen this panel to refresh.",
+      "Analysis uses saved SEO metadata and QuixSEO settings. Unsaved changes in EmDash’s native SEO controls are not included. Draft public paths are not assessed; compare scores only with equivalent coverage.",
     ),
+    actions(
+      button("analyze-current", "Analyze current editor"),
+      button("refresh-saved", "Refresh saved analysis"),
+    ),
+    ...(warning
+      ? [
+          {
+            type: "banner" as const,
+            variant: "alert" as const,
+            title: "Content source notice",
+            description: warning,
+          },
+        ]
+      : []),
+    ...(detail
+      ? [
+          {
+            type: "accordion" as const,
+            label: "Advanced details",
+            blocks: [context(detail.slice(0, 1000))],
+          },
+        ]
+      : []),
     ...(!urls.site
       ? [
           {
@@ -186,12 +198,13 @@ export async function editor(
       blocks: [
         section(item.seo?.title || title),
         context(
-          urls.page ??
-            "Public URL unavailable — no route is assumed for this preview.",
+          source === "Published content"
+            ? (urls.page ??
+                "Public URL unavailable — no route is assumed for this preview.")
+            : `Saved public URL: ${urls.page ?? "Not available"}. The draft path is not assessed.`,
         ),
         section(
-          item.seo?.description ||
-            String(item.data.excerpt ?? "No description"),
+          item.seo?.description || String(data.excerpt ?? "No description"),
         ),
         context(
           "Approximation only. Search engines may rewrite titles and snippets. Theme must render getSeoMeta().",
@@ -297,43 +310,18 @@ export async function draft(
   if (route.ui?.surface !== "content-editor-action")
     throw new Error("Draft analysis requires an editor action");
   const payload = z
-    .object({
-      draft: z
-        .object({ fields: z.record(z.string(), z.unknown()) })
-        .passthrough(),
-    })
-    .passthrough()
+    .looseObject({ draft: z.unknown().check(z.refine((v) => v !== undefined)) })
     .parse(route.input);
-  const ref = route.ui.entry;
-  const [config, site, publicUrl] = await Promise.all([
-    entryConfig(ctx, ref.collection, ref.id),
-    settings(ctx),
-    ctx.content?.getPublicUrl?.(ref.collection, ref.id),
-  ]);
-  const urls = analysisUrls(ctx.site.url, publicUrl);
-  const a = analyze({
-    title: String(payload.draft.fields.title ?? ""),
-    description: String(payload.draft.fields.excerpt ?? ""),
-    body: payload.draft.fields.body ?? payload.draft.fields.content,
-    // Saved routes cannot attest an unsaved slug. Only the origin can be reused.
-    url: null,
-    siteUrl: urls.origin,
-    titleSource: "draft",
-    descriptionSource: "draft",
-    keyphrases: config.keyphrases,
-    locale: route.ui.entry.locale || ctx.site.locale,
-    readability: site.readability,
-    language: site.language,
-  });
-  const recommendations = a.checks
+  const result = await editorContent(ctx, route.ui.entry, payload.draft);
+  const recommendations = result.analysis.checks
     .filter((c) => c.status === "problem" || c.status === "improve")
     .slice(0, 2)
     .map((c) => c.message)
-    .join(". ");
+    .join(" ");
   return {
     toast: {
       type: "info",
-      message: `Unsaved draft checklist: ${a.score ?? "—"}/100 (partial analysis; ${a.assessment.unavailable} checks unavailable). ${!urls.site ? `${siteUrlWarning.title}. ${siteUrlWarning.description} ` : ""}${recommendations || "No issues in the checked rules."} Saved SEO metadata and unsaved URL changes are not assessed. Save and open QuixSEO for full saved SEO checks.`,
+      message: `Unsaved draft checklist: ${result.analysis.score ?? "—"}/100 (partial analysis). ${!result.urls.site ? `${siteUrlWarning.title}. ${siteUrlWarning.description} ` : ""}${result.warning} ${recommendations} Use Analyze current editor in the QuixSEO sidebar for full findings. Saved SEO metadata is used; unsaved URL changes are not assessed.`,
     },
   };
 }
