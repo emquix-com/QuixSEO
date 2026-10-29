@@ -60,3 +60,52 @@ describe("actual EmDash head resolver", () => {
     expect(html.match(/<script /g)).toHaveLength(1);
   });
 });
+
+it("renders actual QuixSEO contributions with core fallbacks once per metadata key", async () => {
+  const { metadata } = await import("../../src/services/metadata.js");
+  const page = createPublicPageContext({
+    url: "https://example.com/garden",
+    kind: "content",
+    title: "Native title",
+    description: "Native description",
+    canonical: "https://example.com/garden",
+    image: "https://example.com/native.jpg",
+    content: { collection: "posts", id: "entry" },
+  });
+  const ctx = {
+    storage: {
+      settings: { get: async () => ({ metadata: true, schema: true }) },
+      entries: {
+        get: async () => ({
+          ogTitle: "OG override",
+          twitterTitle: "X override",
+        }),
+      },
+    },
+  } as unknown as import("emdash/plugin").PluginContext;
+  const contributions = await metadata({ page }, ctx);
+  const html = renderPageMetadata(
+    resolvePageMetadata([
+      ...contributions,
+      ...generateBaseSeoContributions(page),
+    ]),
+  );
+  for (const key of [
+    'name="description"',
+    'rel="canonical"',
+    'property="og:title"',
+    'property="og:description"',
+    'property="og:image"',
+    'name="twitter:title"',
+    'name="twitter:description"',
+    'name="twitter:image"',
+    'name="twitter:card"',
+    "application/ld+json",
+  ]) {
+    expect(html.split(key).length - 1, key).toBe(1);
+  }
+  expect(html).toContain("OG override");
+  expect(html).toContain("X override");
+  expect(html).toContain("Native description");
+  expect(html).not.toContain("<title"); // EmDashHead owns the title element.
+});

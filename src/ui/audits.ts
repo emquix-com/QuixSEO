@@ -38,26 +38,10 @@ export function auditBlocks(job: AuditJob): Block[] {
     context(
       `Started ${job.createdAt}. ${job.processed} entries scanned · ${job.assessed} assessed. Audits review published content; unpublished editor revisions are excluded.`,
     ),
-    {
-      type: "stats",
-      items: [
-        {
-          label: job.incompleteAnalyses
-            ? "Site checklist average (partial)"
-            : "Site checklist average",
-          value:
-            job.phase === "complete" && job.scored
-              ? `${Math.round(job.scoreTotal / job.scored)}/100`
-              : job.phase === "complete"
-                ? "Not scored"
-                : "Available after completion",
-        },
-        {
-          label: "Entries requiring attention",
-          value: job.attention ?? "Not recorded",
-        },
-      ],
-    },
+    section(
+      `Site checklist average${job.incompleteAnalyses ? " (partial)" : ""}: ${job.phase === "complete" && job.scored ? `${Math.round(job.scoreTotal / job.scored)}/100` : job.phase === "complete" ? "Not scored" : "Available after completion"}`,
+    ),
+    context(`Entries requiring attention: ${job.attention ?? "Not recorded"}`),
     {
       type: "columns",
       columns: [
@@ -88,7 +72,7 @@ export function auditBlocks(job: AuditJob): Block[] {
       ],
     },
     context(
-      `${job.incompleteAnalyses ?? 0} entries have partial analysis. Findings are provisional until all scanning and assessment steps finish. Missing metadata counts concern explicit overrides; themes may provide fallbacks. Scores do not predict rankings.`,
+      `${job.incompleteAnalyses ?? 0} entries have partial analysis. ${job.phase === "complete" ? "Audit completed. Results reflect the published content analyzed at the time of this review." : job.phase === "cancelled" ? "Audit cancelled. Results cover only the content assessed before cancellation." : status === "Failed or interrupted" ? "Audit interrupted. Results are incomplete; resume to finish assessment." : "Results are preliminary until the audit finishes."} Missing metadata counts concern explicit overrides; themes may provide fallbacks. Scores do not predict rankings.`,
     ),
     ...(active
       ? [
@@ -218,6 +202,16 @@ export async function reportsView(
     limit: 10,
     cursor,
   });
+  if (!cursor && !page.hasMore && page.items.length === 1 && page.items[0]) {
+    const record = page.items[0].data;
+    return [
+      header("SEO audit results"),
+      actions(button("audit-status", "Back to audit", id)),
+      section(auditStatus(job)),
+      section(record.title),
+      ...findingBlocks(record),
+    ];
+  }
   const rows = page.items.filter(
     ({ data: r }) =>
       filter === "all" ||
@@ -271,22 +265,6 @@ export async function reportsView(
         ? "No matching entries on this page. Try another filter or the next page."
         : "No published entries have been analyzed. Check collection settings or refresh audit progress.",
     },
-    ...(rows.length === 1
-      ? [
-          section(rows[0]?.data.title ?? "Article"),
-          {
-            type: "columns" as const,
-            columns: [
-              findingBlocks(rows[0]?.data as AuditRecord),
-              [
-                context(
-                  "Fix highlights detected problems. Review includes optional editorial recommendations. N/A checks do not earn points.",
-                ),
-              ],
-            ],
-          },
-        ]
-      : []),
     ...(page.hasMore
       ? [
           actions(
@@ -317,6 +295,13 @@ export async function suggestionsView(
     source,
     page.items.map((x) => x.data),
   );
+  const alreadyLinked =
+    relatedCandidates(
+      { ...source, analysis: { ...source.analysis, internal: [] } },
+      page.items
+        .map((x) => x.data)
+        .filter((r) => source.analysis.internal.includes(r.url)),
+    ).length > 0;
   const sole =
     !cursor &&
     !page.hasMore &&
@@ -332,6 +317,10 @@ export async function suggestionsView(
     ),
     ...related.flatMap(({ entry: r }) => [
       section(`${r.title}${r.cornerstone ? " · Cornerstone" : ""}`),
+      context(r.url),
+      context(
+        "Shares words in the title or focus keyphrases with this article.",
+      ),
       actions(editLink(r.collection, r.contentId, r.locale)),
     ]),
     ...(!related.length
@@ -341,7 +330,9 @@ export async function suggestionsView(
             title: "No link suggestions yet",
             description: sole
               ? "This audit contains at most one eligible published article in this language. Add other relevant published pages and run a new audit before requesting suggestions."
-              : "No sufficiently relevant candidates were found on this candidate page. Try the next page if available; QuixSEO will not suggest unrelated content just to fill the list.",
+              : alreadyLinked
+                ? "Relevant candidates on this page are already linked from this article. Search the next candidate page if available."
+                : "No sufficiently relevant candidates were found on this candidate page. Try the next page if available; QuixSEO will not suggest unrelated content just to fill the list.",
           },
         ]
       : []),

@@ -93,8 +93,8 @@ large editorial changes. Audits always examine published content.
 ## Results and change history
 
 **View audit results** opens **SEO audit results**, with visible article scores
-and Fix / Review / unavailable counts before opening details. One matching
-article opens its findings automatically. Results use pages of ten; the explicit
+and Fix / Review / unavailable counts before opening details. A single-result
+audit shows findings directly, without a duplicate table or page filters. Results use pages of ten; the explicit
 filter and ordering controls apply to that page, not the whole database. Older
 snapshots remain under **Previous site reviews**. Findings use a table, with
 entry identifiers under **Advanced details** and a contextual **Back to audit**.
@@ -128,8 +128,8 @@ rollback remain unchanged. Badge labels remain Passed / Review / Fix / N/A.
 3. Repeat with a translatable `article_text` Portable Text field on pages. For a
    custom collection, declare its selectors first. Omit a nontranslatable custom
    field from selectors and verify it is explicitly unavailable.
-4. Confirm focus phrases, social overrides and schema persist; preview/apply and
-   revert a single change. Change the same value separately and verify stale
+4. Save focus phrases, social overrides and schema with Save QuixSEO settings;
+   refresh to verify persistence and revert the operation from change history. Change the same value separately and verify stale
    rollback refuses to overwrite it. Repeat with a multi-entry plan.
 5. Start reviews on empty, one-entry and large sites. Close the browser. Restart
    the server during a larger review, return, and refresh status until complete.
@@ -140,3 +140,6 @@ rollback remain unchanged. Badge labels remain Passed / Review / Fix / N/A.
    one-article site and across more than 100 candidates. Verify all Back actions.
 8. Confirm native SEO tags and public social/schema output remain deduplicated.
    No production site or Windows `test-site/astro.config.mjs` changes are needed.
+
+See [editor save integration](editor-save-integration.md) for the one-click save
+workflow, data preservation, inspected APIs and upstream feature-request draft.

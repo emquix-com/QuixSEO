@@ -588,7 +588,7 @@ export async function admin(
         blocks = [
           header("QuixSEO"),
           section("Complete SEO Toolkit for EmDash"),
-          context("Webtaculos · Free, with no account or paid features"),
+          context("EmQuix · Free, with no account or paid features"),
           actions(
             button("audit-start", "Start a new site review"),
             button("audit-history", "Previous site reviews"),

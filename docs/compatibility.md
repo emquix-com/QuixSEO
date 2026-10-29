@@ -93,3 +93,9 @@ warning when a Block Kit form is rendered inside its editor form. Apply/revert
 and editor actions pass; QuixSEO does not patch the host DOM. Single-article audit
 findings render directly because host accordions can retain closed state across
 view changes even when the next response specifies `default_open`.
+
+## Native Save and autosave
+
+See [editor save integration](editor-save-integration.md). Ordinary settings use
+one explicit save; native Save does not submit sandbox panel values. No storage
+migration, native metadata writes or publication changes are made.

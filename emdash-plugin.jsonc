@@ -4,7 +4,7 @@
   // Reserved development identity, deliberately unpublishable until Webtaculos supplies its verified Atmosphere DID.
   "publisher": "quixseo.invalid",
   "name": "QuixSEO",
-  "description": "Complete SEO Toolkit for EmDash — editorial guidance, structured data and reviewed site management.",
+  "description": "Complete SEO Toolkit for EmDash · EmQuix — editorial guidance, structured data and reviewed site management.",
   "license": "MIT",
   "author": { "name": "Webtaculos", "url": "https://webtaculos.com" },
   "security": { "url": "https://github.com/alexandru-b/QuixSEO/security" },

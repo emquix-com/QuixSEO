@@ -63,6 +63,7 @@ export async function previewChanges(
   actorId: string,
   proposals: Proposal[],
   kind: string,
+  expectedConfigFingerprint?: string,
 ): Promise<ChangePlan> {
   if (!proposals.length || proposals.length > 20)
     throw new Error("Preview between 1 and 20 entries at a time");
@@ -83,6 +84,13 @@ export async function previewChanges(
     );
     const beforeSeo = seoSchema.parse(item.seo ?? emptySeo),
       beforeConfig = entryConfigSchema.parse(current?.value ?? {});
+    if (
+      expectedConfigFingerprint !== undefined &&
+      (await fingerprint(beforeConfig)) !== expectedConfigFingerprint
+    )
+      throw new Error(
+        "QuixSEO settings changed since this form opened. Copy your edits, refresh and retry; nothing was overwritten.",
+      );
     rows.push({
       ...p,
       entryTitle: titleOf(item),

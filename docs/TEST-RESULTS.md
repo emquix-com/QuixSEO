@@ -215,3 +215,36 @@ package uses two real JPEG captures; the setup screenshot remains in source docs
 Zod 4.3.6 is the only non-development dependency and is MIT-licensed; its full
 notice and QuixSEO's original MIT notice are included in the bundled README.
 The dependency audit is an advisory check, not an independent security audit.
+
+## Editor integration and EmQuix refinement — 2026-10-29
+
+Environment: isolated Linux checkout, Node 24.19.0, locked EmDash 1.3.1.
+
+- `npm run check`: passed (138 unit/integration tests, TypeScript, Biome,
+  manifest validation and build).
+- `npm run test:sandbox`: passed (21 official Worker Loader tests). Includes
+  one-submit settings save, restart persistence, draft state, stale-form input
+  retention and entry ownership enforcement, plus existing rollback/audit tests.
+- `npm run test:imports`: passed (3 Python tests).
+- `npm run bundle`: passed; artifact built locally, not published.
+- `npm run test:browser`: passed (9 checks) with installed Chromium and the
+  documented `npm run dev:site -- --ignore-lock` invocation. Verified anonymous
+  HTML, current-editor analysis, one-click save followed by reload, history
+  rollback and automatic audit completion. Initial startup attempts timed out
+  without `--ignore-lock`; an intermediate test needed to reopen EmDash's
+  collapsed panel after reload. Both were resolved before the passing run.
+- Reviewed the actual captured sidebar at approximately 350px wide: vertical
+  statistics and separate action rows remain readable. No custom CSS was added.
+
+
+Actual QuixSEO metadata contributions are tested through EmDash's metadata
+resolver/renderer with native fallbacks: one description, canonical, each OG/X
+key and primary JSON-LD entry. The plugin does not emit a title element. This
+checks resolver output; the browser additionally verifies one title, description,
+canonical, OG/X text tags and primary schema on the real test-site page. Arbitrary
+themes that manually emit extra tags are outside this guarantee.
+
+No changes to scoring model 2 or the candidate matching algorithm. No native
+metadata writes, content publication, content-revision writes, storage migration,
+database reset, deployment or registry release. Windows-specific test-site
+configuration was not accessed or changed; tracked astro.config.mjs is untouched.

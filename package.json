@@ -1,7 +1,7 @@
 {
   "name": "quixseo",
   "version": "0.1.0-alpha.1",
-  "description": "QuixSEO \u2014 Complete SEO Toolkit for EmDash",
+  "description": "QuixSEO \u2014 Complete SEO Toolkit for EmDash · EmQuix",
   "type": "module",
   "private": true,
   "license": "MIT",

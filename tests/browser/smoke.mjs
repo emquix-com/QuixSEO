@@ -121,9 +121,14 @@ try {
     .locator('meta[property="og:title"]')
     .getAttribute("content");
   for (const selector of [
+    "title",
     'link[rel="canonical"]',
     'meta[name="description"]',
     'meta[property="og:title"]',
+    'meta[property="og:description"]',
+    'meta[name="twitter:title"]',
+    'meta[name="twitter:description"]',
+    'meta[name="twitter:card"]',
     'script[type="application/ld+json"]',
   ])
     assert.equal(await publicPage.locator(selector).count(), 1, selector);
@@ -141,13 +146,11 @@ try {
   });
   await panel.waitFor();
   await panel.click();
-  await page.getByText("SEO editorial checks", { exact: true }).waitFor();
+  await page.getByText(/^SEO checks:/).waitFor();
   await expect(page.getByText(/Automated check coverage:/)).toBeVisible();
   await expect(page.getByText("⚪ N/A", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/No images to assess/)).toBeVisible();
-  await page
-    .getByText("SEO editorial checks", { exact: true })
-    .scrollIntoViewIfNeeded();
+  await page.getByText(/^SEO checks:/).scrollIntoViewIfNeeded();
   await page.screenshot({ path: "screenshots/editor.jpg", quality: 45 });
   await page
     .getByRole("button", { name: "Analyze current editor", exact: true })
@@ -169,7 +172,9 @@ try {
   await page
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .fill("garden care");
-  await page.getByLabel("Open Graph title", { exact: true }).fill(social);
+  await page
+    .getByLabel("Open Graph title override", { exact: true })
+    .fill(social);
   await page
     .getByLabel(
       "Advanced schema configuration (JSON; leave empty for WebPage defaults)",
@@ -177,10 +182,14 @@ try {
     )
     .fill(JSON.stringify({ type: "BlogPosting", author: "Test author" }));
   await page
-    .getByRole("button", { name: "Preview SEO changes", exact: true })
+    .getByRole("button", { name: "Save QuixSEO settings", exact: true })
     .click();
-  await confirm("Apply changes");
-  await expect(page.getByText("Change applied", { exact: true })).toBeVisible();
+  await expect(page.getByText(/QuixSEO settings saved/)).toBeVisible();
+  await page.reload();
+  await panel.click();
+  await expect(
+    page.getByLabel("Focus keyphrases, comma separated", { exact: true }),
+  ).toHaveValue("garden care");
   await publicPage.reload();
   assert.equal(
     await publicPage
@@ -196,8 +205,13 @@ try {
   assert(graph["@graph"].some((x) => x["@type"] === "BlogPosting"));
   assert(!JSON.stringify(graph).includes("##"));
   results.push(
-    "Editor preview/confirmation persists plugin data; anonymous HTML reflects social and BlogPosting overrides",
+    "Single-click settings save persists plugin data; anonymous HTML reflects social and BlogPosting overrides",
   );
+  await pluginPage("history");
+  await page
+    .getByRole("button", { name: "View change", exact: true })
+    .first()
+    .click();
   await confirm("Revert change");
   await expect(
     page.getByText("Change reverted", { exact: true }),

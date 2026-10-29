@@ -701,3 +701,75 @@ it.each([
   expect(JSON.stringify(results)).toContain("Back to audit");
   if (count === 80) expect(JSON.stringify(results)).toContain("Next results");
 }, 120000);
+
+it("saves ordinary settings in one sandboxed form submit, detects stale forms and preserves draft state", async () => {
+  const { host, admin } = await setup();
+  const item = await host.fixtures.content("posts", {
+    data: { title: "Draft garden" },
+    slug: "draft-garden",
+    status: "draft",
+    authorId: admin.id,
+  });
+  const panel = await host.admin.loadEditorPanel("quixseo", "posts", item.id, {
+    user: admin,
+  });
+  const form = panel.blocks.find((b) => b.type === "form");
+  if (form?.type !== "form") throw new Error("Missing settings form");
+  const values = Object.fromEntries(
+    form.fields.map((f) => [
+      f.action_id,
+      "initial_value" in f ? f.initial_value : "",
+    ]),
+  );
+  expect(values).not.toHaveProperty("title");
+  const otherAuthor = await host.fixtures.user({
+    email: "other-author@example.test",
+    role: "author",
+  });
+  await expect(
+    host.admin.submitEditorPanel(
+      "quixseo",
+      "posts",
+      item.id,
+      form.submit.action_id,
+      values,
+      { user: otherAuthor },
+    ),
+  ).rejects.toThrow();
+  const saved = await host.admin.submitEditorPanel(
+    "quixseo",
+    "posts",
+    item.id,
+    form.submit.action_id,
+    { ...values, keyphrases: "draft garden", ogTitle: "Garden override" },
+    { user: admin },
+  );
+  expect(saved.toast?.type).toBe("success");
+  await host.restart();
+  const refreshed = await host.admin.loadEditorPanel(
+    "quixseo",
+    "posts",
+    item.id,
+    { user: admin },
+  );
+  expect(JSON.stringify(refreshed)).toContain("draft garden");
+  expect(JSON.stringify(refreshed)).toContain("Garden override");
+  expect(JSON.stringify(refreshed)).toContain("Saved draft");
+  const stale = await host.admin.submitEditorPanel(
+    "quixseo",
+    "posts",
+    item.id,
+    form.submit.action_id,
+    { ...values, keyphrases: "stale edits" },
+    { user: admin },
+  );
+  expect(stale.toast?.type).toBe("error");
+  expect(JSON.stringify(stale)).toContain("stale edits");
+  expect(JSON.stringify(stale)).toContain("changed since this form");
+  const plans = await host.inspect.storage.list<ChangePlan>("changes");
+  expect(plans).toHaveLength(1);
+  expect(plans[0]?.data.rows[0]?.status).toBe("applied");
+  expect(plans[0]?.data.rows[0]?.afterSeo).toEqual(
+    plans[0]?.data.rows[0]?.beforeSeo,
+  );
+});

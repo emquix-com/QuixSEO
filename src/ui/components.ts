@@ -108,32 +108,17 @@ export function analysisBlocks(a: Analysis): Block[] {
     unsupported: "⚪ N/A",
   };
   return [
-    {
-      type: "stats",
-      items: [
-        {
-          label: a.checks.some(
-            (c) => c.category === "seo" && c.reason === "unavailable",
-          )
-            ? "SEO editorial checks (partial)"
-            : "SEO editorial checks",
-          value: a.score === null ? "Not scored" : `${a.score}/100`,
-        },
-        {
-          label: "Readability",
-          value:
-            a.readabilityScore === null
-              ? "Not scored"
-              : `${a.readabilityScore}/100`,
-        },
-        {
-          label: "Internal / external links",
-          value: a.linksAssessed
-            ? `${a.internal.length} / ${a.external.length}`
-            : "Not fully assessed",
-        },
-      ],
-    },
+    section(
+      `SEO checks: ${a.score === null ? "Not scored" : `${a.score}/100`}`,
+    ),
+    section(
+      `Readability: ${a.readabilityScore === null ? "Not scored" : `${a.readabilityScore}/100`}`,
+    ),
+    context(
+      a.linksAssessed
+        ? `Links: ${a.internal.length} internal · ${a.external.length} external`
+        : "Links: not fully assessed",
+    ),
     context(
       "This score summarizes automated editorial checks, not topical depth, factual accuracy or search rankings. Keyphrase guidance is unscored. Passing optional diagnostics adds no points.",
     ),

@@ -256,3 +256,124 @@ const heading = [
     markDefs: [],
   },
 ];
+
+describe("ordinary settings save", () => {
+  it("removes native inputs and saves existing plugin overrides without native writes or publishing", async () => {
+    const { ctx, route } = fixture();
+    const original = await ctx.content.get("posts", "entry");
+    if (!original) throw new Error("missing");
+    original.status = "draft";
+    original.seo = {
+      title: "Native title",
+      description: "Native description",
+      canonical: "/original",
+      image: "/native.jpg",
+      noIndex: true,
+    };
+    ctx.content.get = async () => structuredClone(original);
+    const buckets = new Map<string, { value: unknown; revision: string }>();
+    let serial = 0;
+    for (const name of ["entries", "changes"]) {
+      const key = (id: string) => `${name}/${id}`;
+      ctx.storage[name] = {
+        get: async (id: string) =>
+          structuredClone(buckets.get(key(id))?.value ?? null),
+        getVersioned: async (id: string) =>
+          structuredClone(buckets.get(key(id)) ?? null),
+        put: async (id: string, value: unknown) => {
+          buckets.set(key(id), {
+            value: structuredClone(value),
+            revision: String(++serial),
+          });
+        },
+        compareAndSet: async (
+          id: string,
+          revision: string | null,
+          value: unknown,
+        ) => {
+          if ((buckets.get(key(id))?.revision ?? null) !== revision)
+            return { applied: false };
+          const next = String(++serial);
+          buckets.set(key(id), {
+            value: structuredClone(value),
+            revision: next,
+          });
+          return { applied: true, revision: next };
+        },
+      } as never;
+    }
+    await ctx.storage.entries?.put("posts:entry", {
+      ogTitle: "Existing override",
+      cornerstone: true,
+    });
+    const panel = await editor(route, ctx);
+    const form = panel.blocks.find((b) => b.type === "form");
+    if (form?.type !== "form") throw new Error("Missing form");
+    const values = Object.fromEntries(
+      form.fields.map((f) => [
+        f.action_id,
+        "initial_value" in f ? f.initial_value : "",
+      ]),
+    );
+    for (const native of [
+      "title",
+      "description",
+      "canonical",
+      "image",
+      "noIndex",
+    ])
+      expect(values).not.toHaveProperty(native);
+    expect(JSON.stringify(panel)).not.toContain('"type":"stats"');
+    const submit = {
+      ...route,
+      input: {
+        type: "form_submit",
+        action_id: form.submit.action_id,
+        values: { ...values, keyphrases: "garden" },
+      },
+    } as SandboxedRouteContext;
+    const invalid = await editor(
+      {
+        ...submit,
+        input: {
+          type: "form_submit",
+          action_id: form.submit.action_id,
+          values: {
+            ...values,
+            schema: "invalid JSON",
+            keyphrases: "keep my edits",
+          },
+        },
+      } as SandboxedRouteContext,
+      ctx,
+    );
+    expect(invalid.toast?.type).toBe("error");
+    expect(JSON.stringify(invalid)).toContain("keep my edits");
+    expect(JSON.stringify(invalid)).toContain("invalid JSON");
+    const result = await editor(submit, ctx);
+    expect(result.toast?.message).toContain("settings saved");
+    expect(await ctx.storage.entries?.get("posts:entry")).toMatchObject({
+      keyphrases: ["garden"],
+      ogTitle: "Existing override",
+      cornerstone: true,
+    });
+    expect(await ctx.content.get("posts", "entry")).toEqual(original);
+    expect(JSON.stringify(await editor(route, ctx))).toContain("garden");
+    expect(JSON.stringify(await editor(submit, ctx))).toContain(
+      "changed since this form",
+    );
+    await expect(editor({ ...submit, user: undefined }, ctx)).rejects.toThrow(
+      "Permission denied",
+    );
+    const journals = [...buckets.entries()].filter(([k]) =>
+      k.startsWith("changes/"),
+    );
+    for (const [, row] of journals) {
+      const plan = row.value as {
+        rows: { beforeSeo: unknown; afterSeo: unknown; seo: unknown }[];
+      };
+      expect(plan.rows[0]?.seo).toEqual({});
+      expect(plan.rows[0]?.afterSeo).toEqual(plan.rows[0]?.beforeSeo);
+    }
+  });
+});

@@ -213,7 +213,7 @@ export function planBlocks(
               ...details,
               {
                 type: "accordion",
-                label: "Advanced details",
+                label: "Entry details",
                 blocks: [context(`Entry ID: ${row.id}`)],
               },
             ]
@@ -226,7 +226,7 @@ export function planBlocks(
                     ...summary,
                     {
                       type: "accordion",
-                      label: "Advanced details",
+                      label: "Entry details",
                       blocks: [context(`Entry ID: ${row.id}`)],
                     },
                   ],
@@ -275,7 +275,7 @@ export function planBlocks(
     context("Reverting stops if saved values changed since this operation."),
     {
       type: "accordion",
-      label: "Advanced details",
+      label: "Operation details",
       blocks: [context(`Operation reference: ${plan.id}`)],
     },
   );

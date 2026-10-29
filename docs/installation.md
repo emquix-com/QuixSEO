@@ -32,7 +32,7 @@ A deployed Cloudflare site has not been certified for this alpha.
 Database, uploads, sessions and generated test results are ignored by git.
 To reset the fixture, stop its server and remove only its local database and
 uploads after deciding whether you need them. No production repository or
-Webtaculos website is involved.
+EmQuix website is involved.
 
 When updating, approve the new `content:revisions:read` capability to enable
 saved-draft analysis. No content-write or additional cron capability is required.

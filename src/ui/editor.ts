@@ -5,9 +5,9 @@ import { validateSchema } from "../domain/schema.js";
 import { siteUrlWarning } from "../domain/urls.js";
 import {
   entryConfigSchema,
+  fingerprint,
   jsonInput,
   schemaConfig,
-  seoSchema,
   text,
 } from "../domain/validation.js";
 import type { ChangePlan } from "../services/changes.js";
@@ -29,11 +29,6 @@ import {
 import { planBlocks } from "./plans.js";
 
 const editorValues = z.strictObject({
-  title: text(300),
-  description: text(1000),
-  canonical: text(2048),
-  image: text(2048),
-  noIndex: z.boolean(),
   keyphrases: text(2500),
   cornerstone: z.boolean(),
   noFollow: z.boolean(),
@@ -46,7 +41,7 @@ const editorValues = z.strictObject({
   twitterImage: text(2048),
   schema: text(20000),
 });
-export async function editor(
+async function renderEditor(
   route: SandboxedRouteContext,
   ctx: PluginContext,
 ): Promise<BlockResponse> {
@@ -86,18 +81,12 @@ export async function editor(
     );
     return response(planBlocks(plan, "editor"));
   }
-  if (interaction.action_id === "preview-editor") {
+  if (interaction.action_id?.startsWith("save-editor:")) {
+    if (interaction.type !== "form_submit")
+      throw new Error("Submit the settings form");
     const values = editorValues.parse(interaction.values);
-    const {
-      title: _title,
-      description: _description,
-      canonical: _canonical,
-      image: _image,
-      noIndex: _noIndex,
-      ...extra
-    } = values;
     const config = entryConfigSchema.parse({
-      ...extra,
+      ...values,
       keyphrases: values.keyphrases
         .split(",")
         .map((v) => v.trim())
@@ -110,20 +99,40 @@ export async function editor(
       const errors = validateSchema(config.schema);
       if (errors.length) throw new Error(errors.join(" "));
     }
-    const seo = seoSchema.parse({
-      title: values.title || null,
-      description: values.description || null,
-      canonical: values.canonical || null,
-      image: values.image || null,
-      noIndex: values.noIndex,
-    });
     const plan = await previewChanges(
       ctx,
       actorId,
-      [{ collection: ref.collection, id: ref.id, seo, config }],
+      [{ collection: ref.collection, id: ref.id, seo: {}, config }],
       "editor",
+      interaction.action_id.slice("save-editor:".length),
     );
-    return response(planBlocks(plan, "editor"));
+    const applied = await applyChange(ctx, actorId, plan.id);
+    if (applied.rows[0]?.status !== "applied")
+      throw new Error(
+        applied.rows[0]?.error ||
+          "Settings were not saved. Retry after refreshing.",
+      );
+    const message =
+      "QuixSEO settings saved. Content publication status is unchanged.";
+    try {
+      const panel = await renderEditor(
+        { ...route, input: { type: "panel_load" } },
+        ctx,
+      );
+      panel.toast = { type: "success", message };
+      return panel;
+    } catch {
+      return response(
+        [
+          section(message),
+          context(
+            "Analysis could not be refreshed. Refresh saved analysis to retry.",
+          ),
+          actions(button("refresh-saved", "Refresh saved analysis")),
+        ],
+        message,
+      );
+    }
   }
   const current = interaction.action_id === "analyze-current";
   const snapshot = current
@@ -154,15 +163,13 @@ export async function editor(
   } = await editorContent(ctx, ref, snapshot);
   const blocks: Block[] = [
     header("QuixSEO"),
-    context("Complete SEO Toolkit for EmDash · Webtaculos"),
+    context("Complete SEO Toolkit for EmDash · EmQuix"),
     section(source),
     context(
       "Analysis uses saved SEO metadata and QuixSEO settings. Unsaved changes in EmDash’s native SEO controls are not included. Draft public paths are not assessed; compare scores only with equivalent coverage.",
     ),
-    actions(
-      button("analyze-current", "Analyze current editor"),
-      button("refresh-saved", "Refresh saved analysis"),
-    ),
+    actions(button("analyze-current", "Analyze current editor")),
+    actions(button("refresh-saved", "Refresh saved analysis")),
     ...(warning
       ? [
           {
@@ -177,7 +184,7 @@ export async function editor(
       ? [
           {
             type: "accordion" as const,
-            label: "Advanced details",
+            label: "Entry details",
             blocks: [context(detail.slice(0, 1000))],
           },
         ]
@@ -240,31 +247,9 @@ export async function editor(
   }
   blocks.push(
     context(
-      "Native title, description, canonical, image and noindex values below are for preview only in EmDash 1.3.1. Save them in EmDash’s SEO panel. Leave them unchanged here to save QuixSEO keyphrases, social overrides and schema.",
+      "Manage native SEO title, description, canonical URL, indexing and social image in EmDash’s SEO panel. QuixSEO reads these saved values. Save the additional settings below separately; EmDash Save and autosave do not submit this form. Settings on published entries take effect immediately.",
     ),
-    form("preview-editor", "Preview SEO changes", [
-      input("title", "SEO title", item.seo.title ?? ""),
-      input(
-        "description",
-        "Meta description",
-        item.seo.description ?? "",
-        true,
-      ),
-      input(
-        "canonical",
-        "Native canonical (URL or relative path)",
-        item.seo.canonical ?? "",
-      ),
-      input(
-        "image",
-        "Native social image (URL, path or media ID)",
-        item.seo.image ?? "",
-      ),
-      toggle(
-        "noIndex",
-        "Hide from search engines (core noindex, nofollow; excluded from sitemap)",
-        item.seo.noIndex,
-      ),
+    form(`save-editor:${await fingerprint(config)}`, "Save QuixSEO settings", [
       input(
         "keyphrases",
         "Focus keyphrases, comma separated",
@@ -273,22 +258,26 @@ export async function editor(
       toggle("cornerstone", "Cornerstone content", config.cornerstone),
       toggle("noFollow", "Nofollow links on this page", config.noFollow),
       toggle("noSnippet", "Suppress search snippets", config.noSnippet),
-      input("ogTitle", "Open Graph title", config.ogTitle),
+      input("ogTitle", "Open Graph title override", config.ogTitle),
       input(
         "ogDescription",
-        "Open Graph description",
+        "Open Graph description override",
         config.ogDescription,
         true,
       ),
-      input("ogImage", "Open Graph image URL", config.ogImage),
-      input("twitterTitle", "X / Twitter title", config.twitterTitle),
+      input("ogImage", "Open Graph image URL override", config.ogImage),
+      input("twitterTitle", "X / Twitter title override", config.twitterTitle),
       input(
         "twitterDescription",
-        "X / Twitter description",
+        "X / Twitter description override",
         config.twitterDescription,
         true,
       ),
-      input("twitterImage", "X / Twitter image URL", config.twitterImage),
+      input(
+        "twitterImage",
+        "X / Twitter image URL override",
+        config.twitterImage,
+      ),
       input(
         "schema",
         "Advanced schema configuration (JSON; leave empty for WebPage defaults)",
@@ -301,6 +290,53 @@ export async function editor(
     ),
   );
   return response(blocks);
+}
+/** Preserve submitted settings on validation/conflict errors so editors can copy or correct them. */
+export async function editor(
+  route: SandboxedRouteContext,
+  ctx: PluginContext,
+): Promise<BlockResponse> {
+  try {
+    return await renderEditor(route, ctx);
+  } catch (error) {
+    const interaction = route.input as { action_id?: string; values?: unknown };
+    if (!interaction.action_id?.startsWith("save-editor:")) throw error;
+    const submitted = z
+      .record(z.string(), z.union([z.string(), z.boolean()]))
+      .safeParse(interaction.values);
+    if (!submitted.success) throw error;
+    // Rechecks host-bound surface and role; never turn permission failures into an editable form.
+    const panel = await renderEditor(
+      { ...route, input: { type: "panel_load" } },
+      ctx,
+    );
+    for (const block of panel.blocks) {
+      if (block.type !== "form") continue;
+      block.submit.action_id = interaction.action_id;
+      block.block_id = interaction.action_id;
+      for (const field of block.fields) {
+        const value =
+          submitted.data[field.action_id as keyof typeof submitted.data];
+        if (field.type === "text_input" && typeof value === "string")
+          field.initial_value = value;
+        if (field.type === "toggle" && typeof value === "boolean")
+          field.initial_value = value;
+      }
+    }
+    const message =
+      error instanceof Error ? error.message : "Settings could not be saved";
+    panel.blocks.unshift({
+      type: "banner",
+      variant: "error",
+      description: message,
+    });
+    panel.toast = {
+      type: "error",
+      message:
+        "Settings were not saved. Your submitted values are retained below.",
+    };
+    return panel;
+  }
 }
 export async function draft(
   route: SandboxedRouteContext,

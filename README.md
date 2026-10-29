@@ -1,6 +1,6 @@
 # QuixSEO
 
-**Complete SEO Toolkit for EmDash** · [Webtaculos](https://webtaculos.com) · MIT
+**Complete SEO Toolkit for EmDash** · [EmQuix](https://emquix.com) · MIT
 
 QuixSEO adds original editorial SEO guidance, readability checks, structured data,
 and reviewed site management to EmDash. It is free, with no accounts, advertising,
@@ -17,7 +17,8 @@ Implemented workflows include:
 - Saved-entry SEO/readability analysis with multiple keyphrases, explicit unsaved
   draft checks on posts/pages, and textual search/social previews.
 - Plugin-owned social overrides, robots additions, cornerstone flags and ten
-  schema types, with review, confirmation, conflict detection and rollback.
+  schema types, with one-click entry saves, conflict detection and conditional
+  rollback. Bulk changes retain review and confirmation.
 - Resumable published-content audits, duplicate metadata counts, incoming links,
   potential orphan detection and bounded related-content suggestions.
 - Core redirect listing and reviewed exact-path creation; mapped Yoast/Rank Math
@@ -120,3 +121,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+Editor workflow: [Save QuixSEO settings and EmDash limitations](docs/editor-save-integration.md).

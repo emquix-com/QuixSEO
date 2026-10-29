@@ -346,3 +346,63 @@ describe("durable automatic audits", () => {
     expect(suggestions).toContain("not globally ranked");
   });
 });
+
+it("distinguishes completed coverage from running, cancelled and failed audits", async () => {
+  const f = fixture(0);
+  const job = await startAudit(f.ctx, "admin");
+  for (const [phase, expected] of [
+    ["complete", "Audit completed. Results reflect"],
+    ["scan", "Results are preliminary until the audit finishes."],
+    ["cancelled", "Audit cancelled."],
+    ["failed", "Audit interrupted."],
+  ] as const) {
+    const text = JSON.stringify(
+      auditBlocks({ ...job, phase, incompleteAnalyses: 1 }),
+    );
+    expect(text).toContain(expected);
+    expect(text).toContain("1 entries have partial analysis");
+    expect(text).not.toContain("Findings are provisional");
+  }
+  const single = JSON.stringify(await reportsView(f.ctx, job.id));
+  expect(single).not.toContain("Apply page options");
+  expect(single).not.toContain('"page_action_id":"findings-page"');
+  const multi = fixture(2);
+  const multiJob = await startAudit(multi.ctx, "admin");
+  expect(JSON.stringify(await reportsView(multi.ctx, multiJob.id))).toContain(
+    "Apply page options",
+  );
+});
+
+it("distinguishes already linked topical candidates from no overlap", async () => {
+  const f = fixture(2);
+  await startAudit(f.ctx, "admin");
+  const records = (await f.storage.reports.query()).items;
+  const source = records[0];
+  const other = records[1];
+  if (!source || !other) throw new Error("Missing records");
+  const data =
+    source.data as unknown as import("../../src/services/audit.js").AuditRecord;
+  const target =
+    other.data as unknown as import("../../src/services/audit.js").AuditRecord;
+  await f.storage.reports.put(other.id, {
+    ...target,
+    title: data.title,
+    keywords: data.keywords,
+  });
+  const linked = records.slice(1).map((r) => String(r.data.url));
+  await f.storage.reports.put(source.id, {
+    ...data,
+    analysis: { ...data.analysis, internal: linked },
+  });
+  expect(JSON.stringify(await suggestionsView(f.ctx, source.id))).toContain(
+    "already linked",
+  );
+  await f.storage.reports.put(source.id, {
+    ...data,
+    title: "zzunique",
+    keywords: [],
+  });
+  expect(JSON.stringify(await suggestionsView(f.ctx, source.id))).toContain(
+    "No sufficiently relevant",
+  );
+});
