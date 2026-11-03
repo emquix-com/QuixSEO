@@ -1,4 +1,4 @@
-Zod 4.3.6 — bundled runtime dependency
+Zod 4.6.7 — bundled runtime dependency
 
 MIT License
 

@@ -1,4 +1,52 @@
-# Draft workflow and automatic audit validation — 2026-10-26
+# Verification history
+
+## 2026-11-03 — Windows QA fixes and EmDash 1.4.0
+
+Windows, Node 24.20.0, npm 11.19.0, Astro 7.4.2, Edge 156.0.4314.58 and
+Playwright 1.64.1. The local site was upgraded from EmDash 1.3.1 to 1.4.0 with
+blocks 1.4.0, plugin-cli 0.13.5, plugin-test 0.2.11 and sandbox-workerd 0.9.6.
+The existing SQLite data and Windows-specific configuration were preserved.
+
+| Check actually run | Result |
+| --- | --- |
+| Fixes before upgrade on 1.3.1 | 139 unit tests and 23 sandbox tests passed; real browser verified sparse bulk preservation, rollback and retained redirect inputs |
+| `npm run check` on final 1.4 dependencies | Passed: types, lint, 139 unit tests, manifest validation and build |
+| `npm run test:sandbox` | 23 passed, including multi-entry sparse bulk updates and validation recovery |
+| `npm run test:imports` | 3 passed using the portable Python launcher |
+| `npm run test:browser` | 11 local Node/workerd workflow groups passed; no console errors or failed responses in the instrumented run |
+| Separate native-write sandbox probe | Native SEO update still rejected as unknown field; isolated fixture unchanged |
+| `npm audit` | Zero reported vulnerabilities after targeted compatible patches; no `npm audit fix` used |
+| `npm run bundle` | Validated: 236.7 KB unpacked, 135.5 KB tarball; backend 108,205 bytes, within platform limits |
+| Original data/config integrity | Original two posts and draft page API records unchanged; Windows config SHA256 unchanged |
+
+The three verified local QA failures are resolved: bulk partial-update data
+preservation, form recovery after redirect validation errors, and the upstream
+nested-form warning (fixed by EmDash 1.4). Browser coverage also includes stale
+editor submissions, migration validation, native write refusal, deduplicated
+public metadata and automatic audit completion. Blank schema defaults no longer
+appear as false before/after changes.
+
+The first browser run passed the functional groups but reported an unidentified
+resource 404 on the strict console assertion. The instrumented rerun passed all
+11 groups with zero failed responses or console errors. This is recorded as a
+transient diagnostic, not silently filtered out.
+
+Native metadata writes remain preview-only; neither a privileged fallback nor
+content-write permission was added to QuixSEO. Real WordPress source data was not
+available. Permanent redirect deletion was not made recoverable by the upgrade.
+Live pagination/large-site and deployed Cloudflare certification are not claimed.
+The two new regression entries were unpublished and left as clearly labeled
+drafts with plugin overrides cleared; historical audits/journals were retained.
+
+Detailed local artifacts are in `qa-results/fixes-1.4/`, including the follow-up
+report, real-browser screenshots/results, original-record comparison, database
+backup, security audit and isolated probe output. These local artifacts and the
+pre-existing Windows config edit are excluded from the Git commit. See
+[compatibility](compatibility.md) and [release preparation](release.md) for the
+remaining native-write and registry-identity boundaries. No release or deployment
+was performed.
+
+## Draft workflow and automatic audit validation — 2026-10-26
 
 Target: EmDash 1.3.1, Node 24.19.0; the same pinned official CLI, sandbox runner
 and test host as the historical reports. This is an alpha, not 1.0 certification.

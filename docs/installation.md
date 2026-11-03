@@ -1,6 +1,6 @@
 # Installation and disposable site
 
-The supported target is EmDash 1.3.1. The repository pins the tested toolchain in
+The current tested target is EmDash 1.4.0. The repository pins the tested toolchain in
 package-lock.json. Install with Node 24 and `npm ci`; run `npm run check`.
 Python 3 is only needed for the optional local WXR converter and its tests.
 

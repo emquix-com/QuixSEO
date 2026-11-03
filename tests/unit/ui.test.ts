@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Analysis } from "../../src/domain/analysis.js";
 import {
   emptySeo,
+  entryConfigPatchSchema,
   entryConfigSchema,
   schemaConfig,
 } from "../../src/domain/validation.js";
@@ -45,6 +46,20 @@ function samplePlan(row: ChangeRow): ChangePlan {
 }
 
 describe("nontechnical change review", () => {
+  it("keeps patches sparse while allowing explicit clears", () => {
+    expect(entryConfigPatchSchema.parse({ cornerstone: true })).toEqual({
+      cornerstone: true,
+    });
+    expect(
+      entryConfigPatchSchema.parse({
+        keyphrases: [],
+        ogTitle: "",
+        noFollow: false,
+        schema: null,
+      }),
+    ).toEqual({ keyphrases: [], ogTitle: "", noFollow: false, schema: null });
+    expect(() => entryConfigPatchSchema.parse({ unknown: true })).toThrow();
+  });
   it("shows only changed fields with readable previous/proposed values", () => {
     const row = sampleRow();
     expect(reviewedFields(row)).toEqual([
@@ -117,6 +132,12 @@ describe("nontechnical change review", () => {
       before: "Not set",
       after: "Alex",
     });
+    expect(diffs.map((d) => d.label)).toEqual([
+      "Open Graph title",
+      "Structured data enabled",
+      "Schema type",
+      "Author",
+    ]);
   });
 
   it("hides action buttons once a change is rolled back", () => {

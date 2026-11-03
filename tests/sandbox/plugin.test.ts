@@ -1,6 +1,7 @@
 import type { PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { createPluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { afterEach, describe, expect, it } from "vitest";
+import { entryConfigSchema } from "../../src/domain/validation.js";
 import type { AuditJob, AuditRecord } from "../../src/services/audit.js";
 import type { ChangePlan } from "../../src/services/changes.js";
 
@@ -386,6 +387,131 @@ it("blocks unsupported native writes before changing any plugin data", async () 
     (await host.inspect.storage.get<ChangePlan>("changes", plan.id))?.rows[0]
       ?.status,
   ).toBe("pending");
+});
+
+it("preserves omitted bulk settings through preview, apply, and rollback for every prepared row", async () => {
+  const { host, admin, item } = await setup();
+  const second = await host.fixtures.content("posts", {
+    data: { title: "Second" },
+    slug: "second",
+  });
+  const original = entryConfigSchema.parse({
+    keyphrases: ["checkout"],
+    noFollow: true,
+    noSnippet: true,
+    ogTitle: "Social title",
+    ogDescription: "Social description",
+    twitterTitle: "Twitter title",
+    schema: { type: "BlogPosting", author: "Alex" },
+  });
+  for (const entry of [item, second])
+    await host.fixtures.plugin.storage(
+      "entries",
+      `posts:${entry.id}`,
+      original,
+    );
+  noError(
+    await host.admin.submit(
+      "/bulk",
+      "bulk-preview",
+      {
+        changes: JSON.stringify(
+          [item, second].map((entry) => ({
+            collection: "posts",
+            id: entry.id,
+            config: { cornerstone: true },
+          })),
+        ),
+      },
+      { user: admin },
+    ),
+  );
+  const plan = (await host.inspect.storage.list<ChangePlan>("changes"))[0];
+  if (!plan) throw new Error("Missing plan");
+  noError(
+    await host.admin.act("/bulk", "prepare-next", {
+      value: plan.id,
+      user: admin,
+    }),
+  );
+  const prepared = await host.inspect.storage.get<ChangePlan>(
+    "changes",
+    plan.id,
+  );
+  expect(prepared?.rows.map((r) => r.afterConfig)).toEqual([
+    { ...original, cornerstone: true },
+    { ...original, cornerstone: true },
+  ]);
+  for (const entry of [item, second])
+    expect(
+      await host.inspect.storage.get("entries", `posts:${entry.id}`),
+    ).toEqual(original);
+  for (let n = 0; n < 2; n++)
+    noError(
+      await host.admin.act("/bulk", "confirm", { value: plan.id, user: admin }),
+    );
+  for (const entry of [item, second])
+    expect(
+      await host.inspect.storage.get("entries", `posts:${entry.id}`),
+    ).toEqual({ ...original, cornerstone: true });
+  for (let n = 0; n < 2; n++)
+    noError(
+      await host.admin.act("/history", "rollback", {
+        value: plan.id,
+        user: admin,
+      }),
+    );
+  for (const entry of [item, second])
+    expect(
+      await host.inspect.storage.get("entries", `posts:${entry.id}`),
+    ).toEqual(original);
+});
+
+it("retains redirect and migration submissions with readable validation errors", async () => {
+  const { host, admin, item } = await setup();
+  const redirect = await host.admin.submit(
+    "/redirects",
+    "redirect-preview",
+    {
+      source: "/qa-bad",
+      destination: "javascript:alert(1)",
+      type: "302",
+    },
+    { user: admin },
+  );
+  const redirectText = JSON.stringify(redirect);
+  expect(redirectText).toContain("Review your submission");
+  expect(redirectText).toContain("Use an HTTP(S) URL without credentials");
+  expect(redirectText).toContain('"initial_value":"/qa-bad"');
+  expect(redirectText).toContain('"initial_value":"javascript:alert(1)"');
+  expect(redirectText).toContain('"initial_value":"302"');
+  expect(redirectText).not.toContain('\\"code\\":');
+  const json = JSON.stringify([
+    { source: "unknown", collection: "posts", id: item.id, meta: {} },
+  ]);
+  const migration = JSON.stringify(
+    await host.admin.submit(
+      "/migration",
+      "migration-preview",
+      { json },
+      { user: admin },
+    ),
+  );
+  expect(migration).toContain("Choose yoast or rankmath.");
+  expect(migration).toContain(JSON.stringify(json));
+  expect(await host.inspect.storage.list("changes")).toEqual([]);
+  noError(
+    await host.admin.submit(
+      "/redirects",
+      "redirect-preview",
+      {
+        source: "/qa-bad",
+        destination: "/posts/garden-care",
+        type: "302",
+      },
+      { user: admin },
+    ),
+  );
 });
 it("analyzes a host-attested unsaved draft without saving it", async () => {
   const { host, admin, item } = await setup();

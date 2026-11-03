@@ -2,7 +2,7 @@
 
 ## Release-blocking native SEO write gap
 
-EmDash 1.3.1 exposes `seo` in its native content update contract, but both actual
+EmDash 1.3.1 and 1.4.0 expose `seo` in the native content update contract, but both actual
 sandbox bridge implementations send the update data to `updateDraftAware`
 without the native context's SEO handling. The official production sandbox test
 returned `Unknown field 'seo' in collection 'posts'`. This was reproduced during
@@ -21,7 +21,26 @@ rollback. Even once the bridge is fixed, core needs conditional SEO writes:
 SEO-only updates do not change the content version, so version checks alone
 cannot prevent concurrent overwrites.
 
-## EmDash 1.3.1 admin UI constraints
+## EmDash 1.4.0 upgrade verification (2026-11-03)
+
+The local Windows installation now runs EmDash 1.4.0, blocks 1.4.0, plugin-cli
+0.13.5, plugin-test 0.2.11 and sandbox-workerd 0.9.6. The official release has no
+database migrations; the existing SQLite data and Windows config were preserved.
+
+The upgrade fixes the nested editor form warning: the real browser now finds no
+`form form` descendants and no related React errors. It does **not** fix native
+SEO bridge updates. A separate disposable sandbox plugin with content-write
+permission still returns `Unknown field 'seo' in collection 'posts'`, with its
+fixture unchanged. QuixSEO itself still requests no content-write permission.
+
+Native metadata stays owned by EmDash's SEO panel. Bulk and migration operations
+containing native changes remain blocked in full. An EmDash upgrade cannot supply
+missing WordPress export data or make permanent redirect deletion recoverable.
+
+See the [official 1.4 release notes](https://www.emdashcms.com/blog/emdash-1-4)
+and [November verification results](TEST-RESULTS.md#2026-11-03--windows-qa-fixes-and-emdash-140).
+
+## EmDash admin UI constraints
 
 - Saved-entry plugin panels are currently mounted in the editor sidebar. The public plugin manifest's `editorPanels` contract has no placement option for an under-editor full-width panel. QuixSEO cannot relocate itself beneath the body editor without upstream EmDash support. A separate full-page SEO workspace may be developed using official admin-page routes.
 - Block Kit table badges have no semantic color property and currently render with a neutral background. QuixSEO uses compact **Passed / Review / Fix / N/A** labels with colored circle indicators. A fully colored background like the native `Published` badge would require upstream badge variant support.

@@ -2,7 +2,7 @@
 
 This alpha imports mapped plugin-owned data and previews native SEO values.
 **It cannot save native titles, descriptions, canonical URLs or noindex through
-the EmDash 1.3.1 sandbox.** A mixed plan is blocked in full. Apply reviewed native
+the tested EmDash 1.3.1 and 1.4.0 sandboxes.** A mixed plan is blocked in full. Apply reviewed native
 values with core's SEO UI, then create a separate import containing only the
 plugin-owned source keys you want to save. Nothing is silently discarded as a
 successful native import.

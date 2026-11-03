@@ -6,8 +6,9 @@ QuixSEO adds original editorial SEO guidance, readability checks, structured dat
 and reviewed site management to EmDash. It is free, with no accounts, advertising,
 paid features or AI dependency.
 
-**Status: 0.1.0-alpha.1, not production-ready or a 1.0 release.** EmDash 1.3.1's
-sandbox bridges cannot write native SEO fields. QuixSEO deliberately refuses such
+**Status: 0.1.0-alpha.1, not production-ready or a 1.0 release.** Tested on EmDash
+1.4.0 (with the fixes also verified on 1.3.1). Both tested versions' sandbox
+bridges cannot write native SEO fields. QuixSEO deliberately refuses such
 writes: title, description, canonical, main image and indexing changes must be
 saved in the core SEO panel. Native bulk edits and migrations are preview-only.
 See [compatibility](docs/compatibility.md) and [remaining work](docs/ROADMAP.md).

@@ -4,13 +4,14 @@ import { z } from "#validation";
 import { migrateRow, migrationSchema } from "../domain/migration.js";
 import { redirectIssues, redirectSchema } from "../domain/redirects.js";
 import {
-  entryConfigSchema,
+  entryConfigPatchSchema,
   expandTemplate,
   identifier,
   jsonInput,
   seoSchema,
   settingsSchema,
   text,
+  validationMessage,
 } from "../domain/validation.js";
 import type { AuditJob, AuditRecord } from "../services/audit.js";
 import { cancelAudit, resumeAudit, startAudit } from "../services/audit.js";
@@ -61,7 +62,7 @@ const proposalSchema = z.strictObject({
   collection: identifier,
   id: identifier,
   seo: z._default(z.partial(seoSchema), {}),
-  config: z._default(z.partial(entryConfigSchema), {}),
+  config: z._default(entryConfigPatchSchema, {}),
 });
 const uuid = z.string().check(z.uuid());
 async function bulkView(
@@ -179,7 +180,7 @@ async function bulkView(
       input("description", "Description template", "{excerpt}"),
     ]),
     context(
-      "Bulk config changes can save keyphrases, cornerstone, robots additions, social overrides and schema. Native seo fields are preview-only on EmDash 1.3.1; save them in the core SEO panel. Review each step before confirmation.",
+      "Bulk config changes can save keyphrases, cornerstone, robots additions, social overrides and schema. Omitted config fields stay unchanged. Native SEO fields are preview-only on the tested EmDash 1.3.1 and 1.4.0 runtimes; save them in the core SEO panel. Review each step before confirmation.",
     ),
   ];
 }
@@ -294,7 +295,7 @@ async function redirectView(
     ]),
   ];
 }
-export async function admin(
+async function renderAdmin(
   route: SandboxedRouteContext,
   ctx: PluginContext,
 ): Promise<BlockResponse> {
@@ -639,4 +640,72 @@ async function history(ctx: PluginContext, cursor?: string): Promise<Block[]> {
       ? [actions(button("history-next", "Older operations", page.cursor))]
       : []),
   ];
+}
+
+/** Recover editable forms only; permission and confirmation failures stay closed. */
+export async function admin(
+  route: SandboxedRouteContext,
+  ctx: PluginContext,
+): Promise<BlockResponse> {
+  const recovery: Record<string, { page: string; role: number }> = {
+    "save-settings": { page: "/settings", role: 50 },
+    "bulk-filter": { page: "/bulk", role: 40 },
+    "bulk-preview": { page: "/bulk", role: 40 },
+    "template-preview": { page: "/bulk", role: 40 },
+    "migration-preview": { page: "/migration", role: 50 },
+    "redirect-preview": { page: "/redirects", role: 50 },
+    "redirect-import": { page: "/redirects", role: 50 },
+  };
+  const interaction = interactionSchema.parse(route.input);
+  const action = interaction.action_id ?? "";
+  const target = Object.hasOwn(recovery, action) ? recovery[action] : undefined;
+  actor(route, target?.role ?? 40);
+  try {
+    return await renderAdmin(route, ctx);
+  } catch (error) {
+    if (!target) throw error;
+    const submitted = z
+      .record(
+        z.string(),
+        z.union([z.string().check(z.maxLength(48000)), z.boolean()]),
+      )
+      .safeParse(interaction.values);
+    if (!submitted.success) throw error;
+    const panel = await renderAdmin(
+      { ...route, input: { type: "page_load", page: target.page } },
+      ctx,
+    );
+    for (const block of panel.blocks) {
+      if (
+        block.type !== "form" ||
+        block.submit.action_id !== interaction.action_id
+      )
+        continue;
+      // Recovered initial values need a fresh Block Kit field group, otherwise
+      // the host retains uncontrolled input state from the preceding response.
+      block.block_id = `${interaction.action_id}:retry:${crypto.randomUUID()}`;
+      for (const field of block.fields) {
+        const value = submitted.data[field.action_id];
+        if (
+          (field.type === "text_input" || field.type === "select") &&
+          typeof value === "string"
+        )
+          field.initial_value = value;
+        if (field.type === "toggle" && typeof value === "boolean")
+          field.initial_value = value;
+      }
+    }
+    panel.blocks.unshift({
+      type: "banner",
+      variant: "error",
+      title: "Review your submission",
+      description: validationMessage(error),
+    });
+    panel.toast = {
+      type: "error",
+      message:
+        "This submission was not saved. Correct the retained values and try again.",
+    };
+    return panel;
+  }
 }

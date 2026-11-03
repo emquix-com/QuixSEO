@@ -1,5 +1,5 @@
 import type { Block } from "@emdash-cms/blocks";
-import { stableJson } from "../domain/validation.js";
+import { schemaConfig, stableJson } from "../domain/validation.js";
 import type { ChangePlan, ChangeRow } from "../services/changes.js";
 import {
   actions,
@@ -103,6 +103,7 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
 
   const beforeSchema = row.beforeConfig.schema;
   const afterSchema = row.afterConfig.schema;
+  const schemaDefaults = schemaConfig.parse({});
   add("Structured data enabled", Boolean(beforeSchema), Boolean(afterSchema));
   const schemaLabels = {
     type: "Schema type",
@@ -125,7 +126,11 @@ export function reviewedFields(row: ChangeRow): ReviewedField[] {
   for (const [key, label] of Object.entries(schemaLabels) as Array<
     [keyof typeof schemaLabels, string]
   >) {
-    add(label, beforeSchema?.[key], afterSchema?.[key]);
+    add(
+      label,
+      beforeSchema?.[key] ?? (key === "type" ? undefined : schemaDefaults[key]),
+      afterSchema?.[key] ?? (key === "type" ? undefined : schemaDefaults[key]),
+    );
   }
 
   return changes;

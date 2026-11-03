@@ -313,7 +313,7 @@ export async function editor(
     for (const block of panel.blocks) {
       if (block.type !== "form") continue;
       block.submit.action_id = interaction.action_id;
-      block.block_id = interaction.action_id;
+      block.block_id = `${interaction.action_id}:retry:${crypto.randomUUID()}`;
       for (const field of block.fields) {
         const value =
           submitted.data[field.action_id as keyof typeof submitted.data];

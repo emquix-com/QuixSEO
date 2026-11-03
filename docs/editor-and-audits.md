@@ -1,6 +1,6 @@
 # Editor drafts, automatic audits and review navigation
 
-Target: EmDash 1.3.1, Node 24. No changes to EmDash core are required.
+Current tested target: EmDash 1.4.0, Node 24. No changes to EmDash core are required.
 
 ## Editor workflow
 

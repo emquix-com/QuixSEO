@@ -1,4 +1,4 @@
-# QuixSEO editor integration — EmDash 1.3.1
+# QuixSEO editor integration — EmDash 1.4.0
 
 QuixSEO is part of [EmQuix](https://emquix.com). The native SEO panel remains
 EmDash's source of truth. QuixSEO removes its duplicate title, description,
@@ -23,6 +23,12 @@ SEO proposals are empty. No content update/publish API is invoked and no content
 revision is created. Changes remain in plugin history with actor-bound,
 conditional rollback. Older journals and native-change refusal remain supported.
 Bulk/migration operations still require review and confirmation.
+
+The November 3 Windows verification also tested the EmDash 1.4.0 upgrade. Its
+Block Kit field groups remove the nested HTML form warnings seen on 1.3.1.
+Separate native/plugin saves and native SEO bridge limitations remain. Error
+responses remount the retained field group without changing its action or
+conflict token, so stale submissions still cannot overwrite newer settings.
 
 ## Inspected upstream contracts
 

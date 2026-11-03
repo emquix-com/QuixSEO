@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — local QA fixes and EmDash 1.4 (2026-11-03)
+
+- Preserve omitted plugin settings in partial bulk updates; verify preview,
+  multi-entry apply and conditional rollback with non-default existing values.
+- Retain submitted admin forms on validation errors, with readable messages and
+  correction without reload. Remount recovered field groups to avoid stale inputs.
+- Omit unchanged empty schema fields from change reviews.
+- Upgrade the tested Windows site to EmDash 1.4.0 and matching official tooling;
+  verify the upstream nested-form fix. Native sandbox SEO writes remain blocked.
+- Pin security patches and compatible transitive overrides; no automatic fixes.
+- Add a local-only browser regression journey that changes no global settings,
+  and a portable Python fixture-test launcher.
+- Preserve local Windows configuration, SQLite content and historical audits.
+
 ## Unreleased — draft workflow and automatic audits (2026-10-26)
 
 - Read the current entry’s saved draft revision with the new `content:revisions:read` capability; label fallback and current-editor sources honestly.

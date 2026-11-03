@@ -182,7 +182,7 @@ export async function applyChange(
     plan.rows.some((r) => stableJson(r.beforeSeo) !== stableJson(r.afterSeo))
   ) {
     throw new Error(
-      "EmDash 1.3.1 sandbox runners cannot write native SEO fields. This preview has not been applied. Copy the reviewed native values into EmDash’s SEO panel, then prepare a QuixSEO-only operation. See docs/compatibility.md.",
+      "The tested EmDash 1.3.1 and 1.4.0 sandbox runners cannot write native SEO fields. This preview has not been applied. Copy the reviewed native values into EmDash’s SEO panel, then prepare a QuixSEO-only operation. See docs/compatibility.md.",
     );
   }
   const retry = row.status === "applying" || row.status === "reverting";

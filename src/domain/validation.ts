@@ -20,7 +20,12 @@ export function httpUrl(input: string): string {
     throw new Error(
       "Use an absolute HTTP(S) URL without whitespace or backslashes",
     );
-  const url = new URL(input);
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    throw new Error("Use an absolute HTTP(S) URL without credentials");
+  }
   if (
     !["https:", "http:"].includes(url.protocol) ||
     url.username ||
@@ -132,21 +137,36 @@ export const schemaConfig = z.strictObject({
   visibleContentConfirmed: z._default(z.boolean(), false),
 });
 export type SchemaConfig = z.infer<typeof schemaConfig>;
+const entryConfigFields = {
+  keyphrases: z.array(text(120).check(z.minLength(1))).check(z.maxLength(20)),
+  cornerstone: z.boolean(),
+  noFollow: z.boolean(),
+  noSnippet: z.boolean(),
+  ogTitle: text(300),
+  ogDescription: text(1000),
+  ogImage: urlField,
+  twitterTitle: text(300),
+  twitterDescription: text(1000),
+  twitterImage: urlField,
+  schema: z.nullable(schemaConfig),
+};
+// Defaults belong to complete saved records, never to partial updates. Zod's
+// partial(defaultedSchema) can still materialize defaults for omitted keys.
+export const entryConfigPatchSchema = z.partial(
+  z.strictObject(entryConfigFields),
+);
 export const entryConfigSchema = z.strictObject({
-  keyphrases: z._default(
-    z.array(text(120).check(z.minLength(1))).check(z.maxLength(20)),
-    [],
-  ),
-  cornerstone: z._default(z.boolean(), false),
-  noFollow: z._default(z.boolean(), false),
-  noSnippet: z._default(z.boolean(), false),
-  ogTitle: z._default(text(300), ""),
-  ogDescription: z._default(text(1000), ""),
-  ogImage: z._default(urlField, ""),
-  twitterTitle: z._default(text(300), ""),
-  twitterDescription: z._default(text(1000), ""),
-  twitterImage: z._default(urlField, ""),
-  schema: z._default(z.nullable(schemaConfig), null),
+  keyphrases: z._default(entryConfigFields.keyphrases, []),
+  cornerstone: z._default(entryConfigFields.cornerstone, false),
+  noFollow: z._default(entryConfigFields.noFollow, false),
+  noSnippet: z._default(entryConfigFields.noSnippet, false),
+  ogTitle: z._default(entryConfigFields.ogTitle, ""),
+  ogDescription: z._default(entryConfigFields.ogDescription, ""),
+  ogImage: z._default(entryConfigFields.ogImage, ""),
+  twitterTitle: z._default(entryConfigFields.twitterTitle, ""),
+  twitterDescription: z._default(entryConfigFields.twitterDescription, ""),
+  twitterImage: z._default(entryConfigFields.twitterImage, ""),
+  schema: z._default(entryConfigFields.schema, null),
 });
 export type EntryConfig = z.infer<typeof entryConfigSchema>;
 export const settingsSchema = z.strictObject({
@@ -209,4 +229,32 @@ export async function fingerprint(value: unknown): Promise<string> {
   return [...new Uint8Array(digest)]
     .map((v) => v.toString(16).padStart(2, "0"))
     .join("");
+}
+
+/** Render validator issues as readable text rather than a raw JSON exception. */
+export function validationMessage(error: unknown): string {
+  if (
+    error &&
+    typeof error === "object" &&
+    "issues" in error &&
+    Array.isArray(error.issues)
+  ) {
+    return error.issues
+      .slice(0, 5)
+      .map((issue) => {
+        const path = Array.isArray(issue.path) ? issue.path.join(".") : "";
+        const message =
+          issue.code === "invalid_value" && Array.isArray(issue.values)
+            ? `Choose ${issue.values.join(" or ")}.`
+            : String(issue.message || "Check this value.");
+        return `${path ? `${path}: ` : ""}${message}`;
+      })
+      .join(" ")
+      .slice(0, 1500);
+  }
+  return (
+    error instanceof Error
+      ? error.message
+      : "Check the submitted values and try again."
+  ).slice(0, 1500);
 }

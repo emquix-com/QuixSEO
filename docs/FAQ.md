@@ -6,7 +6,7 @@ artificial commercial limits. Batch limits protect sandbox resources.
 **Is it ready for production?** No. This is an alpha with explicit platform and
 product gaps. See the feature ledger and release checklist.
 
-**Why can't I save a title here?** EmDash 1.3.1 sandbox bridges cannot update
+**Why can't I save a title here?** The tested EmDash 1.3.1 and 1.4.0 sandbox bridges cannot update
 native SEO. Use the core SEO panel; QuixSEO can still analyze and preview it.
 
 **Does a green score guarantee rankings?** No. It is an editorial checklist.

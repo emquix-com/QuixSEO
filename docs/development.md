@@ -39,11 +39,20 @@ With the disposable server running, run `npm run test:browser`. Install the
 Playwright Chromium binary with `npx playwright install chromium`, or select an
 existing executable using `CHROMIUM_PATH=/usr/bin/chromium`. Override a different
 local server port with `QUIXSEO_TEST_URL`; the script refuses non-loopback hosts.
-It intentionally creates/updates the `quixseo-garden` fixture, enables SEO on
-Posts, saves test identity, publishes the fixture using core's API, exercises
-editor preview/apply/rollback, checks anonymous HTML and completes a real audit.
-It saves real screenshots in `screenshots/` and an ignored result JSON in
-test-results. Use only the disposable site.
+On Windows the script also detects the standard system Edge installation. It
+creates a uniquely named QA entry, tests editor persistence, sparse bulk changes,
+rollback, stale submissions, validation recovery, native write refusal, public
+HTML and an automatic audit. It never changes global identity or collection
+settings or reuses an existing article. SEO and routes must already be enabled.
+Its own entry is unpublished and settings cleared in `finally`; the labeled draft
+and audit/change journals remain for review. An active existing audit is left
+untouched. Screenshots and results default to ignored `test-results/regressions/`;
+set `QUIXSEO_QA_DIR` to choose a dedicated output directory. The old seeded-site
+journey in `tests/browser/smoke.mjs` is not the default test command.
+
+`npm run test:imports` uses the Python launcher on Windows and Python 3 elsewhere.
+Dependencies pin patched Zod/Vitest and compatible Undici 7 / Sharp overrides;
+run `npm audit` as well as the functional checks when updating the lockfile.
 
 See [draft and audit design](editor-and-audits.md) for the cron lifecycle, selector
 configuration and manual regression checklist. Unit tests inject storage failures,
