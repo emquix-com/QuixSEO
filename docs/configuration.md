@@ -20,6 +20,10 @@
 7. Start an audit once from Overview. The host scheduler advances bounded scan
    and assessment batches. Use Refresh status to inspect progress, or Resume audit
    if scheduling is unavailable. Counts remain provisional until both phases finish.
+8. Optionally enable **llms.txt** in Setup & settings. Save its separate public
+   summary/collection settings, preview, then open or download the generated file.
+   Serving it at `/llms.txt` needs a site route or static deployment; robots.txt
+   references are manual. Follow the [llms.txt setup guide](llms-txt.md).
 
 Editors can use site tools; authors can use the panel on entries they may edit.
 Only administrators save site settings, create redirects or prepare migrations.

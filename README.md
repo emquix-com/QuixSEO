@@ -24,6 +24,9 @@ Implemented workflows include:
   potential orphan detection and bounded related-content suggestions.
 - Core redirect listing and reviewed exact-path creation; mapped Yoast/Rank Math
   metadata previews and plugin-owned imports with a local WXR converter.
+- Optional [llms.txt generation](docs/llms-txt.md), with a public Markdown
+  endpoint, preview/download and a root-route setup example. Referencing it from
+  robots.txt requires manual configuration under current sandbox APIs.
 
 All administration uses EmDash Block Kit. There is no custom React admin, remote
 crawler, analytics tracker or external AI request. Scores describe a documented

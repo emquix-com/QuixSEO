@@ -1,6 +1,7 @@
 import type { Block, BlockResponse } from "@emdash-cms/blocks";
 import type { PluginContext, SandboxedRouteContext } from "emdash/plugin";
 import { z } from "#validation";
+import { llmsConfigSchema } from "../domain/llms.js";
 import { migrateRow, migrationSchema } from "../domain/migration.js";
 import { redirectIssues, redirectSchema } from "../domain/redirects.js";
 import {
@@ -28,6 +29,7 @@ import {
   storage,
   titleOf,
 } from "../services/context.js";
+import { llmsUrls } from "../services/llms.js";
 import {
   auditBlocks,
   auditHistory,
@@ -48,6 +50,7 @@ import {
   select,
   toggle,
 } from "./components.js";
+import { llmsBlocks, llmsPreview } from "./llms.js";
 import { planBlocks } from "./plans.js";
 
 const interactionSchema = z.looseObject({
@@ -232,6 +235,7 @@ async function settingsView(ctx: PluginContext): Promise<Block[]> {
     context(
       "Templates are applied explicitly through previews; the metadata hook cannot change your theme’s <title>. Preferred indexing stays in the native per-entry SEO field so sitemap behavior stays consistent.",
     ),
+    ...(await llmsBlocks(ctx)),
   ];
 }
 async function redirectView(
@@ -304,6 +308,28 @@ async function renderAdmin(
   const a = i.action_id,
     v = i.values ?? {};
   let blocks: Block[] = [];
+  if (a === "save-llms") {
+    actor(route, 50);
+    const config = llmsConfigSchema.parse({
+      enabled: v.enabled,
+      summary: v.summary,
+      collections: text(2000)
+        .parse(v.collections)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+    });
+    if (config.enabled && !llmsUrls(ctx.site.url))
+      throw new Error(
+        "Configure your Site URL in EmDash → Settings before enabling llms.txt.",
+      );
+    await storage(ctx, "settings").put("llms", config);
+    return response(await settingsView(ctx), "llms.txt settings saved");
+  }
+  if (a === "llms-preview") {
+    actor(route, 50);
+    return response(await llmsPreview(ctx));
+  }
   if (a === "save-settings") {
     actor(route, 50);
     const s = settingsSchema.parse({
@@ -649,6 +675,7 @@ export async function admin(
 ): Promise<BlockResponse> {
   const recovery: Record<string, { page: string; role: number }> = {
     "save-settings": { page: "/settings", role: 50 },
+    "save-llms": { page: "/settings", role: 50 },
     "bulk-filter": { page: "/bulk", role: 40 },
     "bulk-preview": { page: "/bulk", role: 40 },
     "template-preview": { page: "/bulk", role: 40 },

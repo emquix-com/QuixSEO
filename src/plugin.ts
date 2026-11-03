@@ -4,6 +4,7 @@ import type {
   SandboxedRouteContext,
 } from "emdash/plugin";
 import { auditCron } from "./services/audit.js";
+import { llmsRoute } from "./services/llms.js";
 import { metadata } from "./services/metadata.js";
 import { admin } from "./ui/admin.js";
 import { draft, editor } from "./ui/editor.js";
@@ -37,6 +38,14 @@ const safe =
 const plugin: SandboxedPlugin = {
   hooks: { "page:metadata": metadata, cron: auditCron },
   routes: {
+    "llms-txt": {
+      public: true,
+      methods: ["GET", "HEAD"],
+      request: { body: "none" },
+      response: "raw",
+      cacheControl: "no-store",
+      handler: llmsRoute,
+    },
     admin: { permission: "content:edit_any", handler: safe(admin) },
     editor: { permission: "content:edit_own", handler: safe(editor) },
     draft: { permission: "content:edit_own", handler: draft },

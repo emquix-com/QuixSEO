@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — optional llms.txt (2026-11-03)
+
+- Add administrator-controlled, disabled-by-default llms.txt generation with
+  collection selection, public summary, preview and download.
+- Read fresh published titles/URLs with bounded queries and output; exclude
+  noindex, hidden, draft, noncanonical and unsafe/off-site content.
+- Declare a public read-only raw text route. Add an optional Astro root-route
+  example and disposable-site integration; no new capabilities or dependencies.
+- Document manual robots.txt reference setup: EmDash has no sandbox hook for
+  modifying core robots.txt, and `Llms:` is not a standard directive.
+- Preserve the updated EmDash 1.4 editor saves, SEO settings and Windows config.
+
 ## Unreleased — local QA fixes and EmDash 1.4 (2026-11-03)
 
 - Preserve omitted plugin settings in partial bulk updates; verify preview,

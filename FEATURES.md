@@ -40,6 +40,7 @@ QuixSEO implementation status is updated after verification.
 | Linking | Incoming/outgoing counts, cornerstone, local relevance suggestions (100 candidates/page, paginated) | Global relevance ranking, custom blocks |
 | Migration | Local WXR mapping, Yoast/Rank Math plugin-data imports; native previews; warnings/revert | Native writes blocked; global settings/schema and wider export support |
 | AI | No dependency, no network requests | Optional BYOK later |
+| llms.txt | Opt-in public Markdown generator, bounded published-title links, preview/download, optional site root route | Root route requires site setup; robots.txt comment is manual; no full-site/multilingual index or guaranteed AI visibility |
 
 These are working alpha workflows, not full feature parity. The comparison above
 shows the intended division of responsibility, not a claim that every item ships.

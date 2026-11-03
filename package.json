@@ -21,7 +21,8 @@
     "check": "npm run typecheck && npm run lint && npm test && npm run validate && npm run build",
     "dev:site": "astro dev --root test-site",
     "test:imports": "node scripts/test-imports.mjs",
-    "test:browser": "node tests/browser/regressions.mjs"
+    "test:browser": "node tests/browser/regressions.mjs",
+    "test:browser:llms": "node tests/browser/llms.mjs"
   },
   "dependencies": {
     "zod": "4.6.7"

@@ -169,3 +169,22 @@ Zod. The same pinned Zod dependency's Mini API preserves schemas/checks/defaults
 with a smaller bundle. `#validation` resolves via package imports in tests and a
 TypeScript path during CLI builds; plugin-cli 0.13.4 otherwise externalizes
 `zod/mini`, which is unusable in the isolate. No host/tooling patches are used.
+
+## llms.txt on EmDash 1.4
+
+The verified 1.4 raw-route contract (`response: "raw"`, `pluginResponse` text
+body) permits a public GET/HEAD endpoint named `llms-txt`. Route names cannot
+contain dots; all sandbox endpoints are mounted under `/_emdash/api/plugins/`.
+The generated manifest declares this public surface. No capabilities are added.
+Admin-only configuration uses a separate plugin-scoped `settings/llms` key;
+default-disabled public requests perform no content reads. Enabled requests read
+fresh published entries through `content:read` and collection metadata through
+`schema:read`, with fixed scan, collection and byte budgets. No revision reads,
+audit-cache reuse, filesystem writes, or network requests are involved.
+
+Core `src/astro/routes/robots.txt.ts` reads core's `seo.robotsTxt` setting and
+adds sitemap/training rules. There is no supported sandbox robots hook or
+core-settings-write permission. The UI supplies a manual informational comment,
+not an invented `Llms:` directive. The optional Astro route example internally
+rewrites `/llms.txt` to the raw sandbox endpoint. It belongs to the hosting site,
+not the registry bundle. See [setup and limitations](docs/llms-txt.md).

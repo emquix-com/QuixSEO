@@ -1,5 +1,39 @@
 # Verification history
 
+## 2026-11-03 — optional llms.txt generation
+
+Built on upstream `f9b3e50` (including the user's EmDash 1.4 and editor-save
+changes), using Node 24, Linux Chromium and the disposable Node/workerd site.
+The Windows `test-site/astro.config.mjs` was not edited.
+
+| Check actually run | Result |
+| --- | --- |
+| `npm run check` | Passed: types, Biome, 157 unit tests, official manifest validation and build |
+| `npm run test:sandbox` | 27 passed, including 4 new real public-route/configuration tests |
+| `npm run test:imports` | 3 passed |
+| `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser:llms` | 4 workflow groups passed: persistence, preview, anonymous root/API/HEAD/download, disable and unchanged robots.txt |
+| `CHROMIUM_PATH=/usr/bin/chromium npm run test:browser` | All 11 existing editor/bulk/rollback/metadata/audit workflow groups passed |
+| `npm run bundle` | Validated: 243.9 KB unpacked, 138.2 KB tarball; backend 115,103 bytes, within platform limits |
+| `git diff --check` | Passed |
+
+The 18 new unit cases cover opt-in behavior, published-only eligibility, invalid
+URLs, collection selection, freshness, unsafe/off-site URLs, bounded scans and
+UTF-8 output, stuck/empty pagination, Markdown escaping, request validation and
+administrator authorization. Production-compatible D1/Worker Loader tests verify
+that a saved unpublished title does not leak, and exercise native noindex changes,
+unpublishing, disabling, permission denial and Site URL recovery.
+
+The first sandbox run exposed incorrect query construction in the **test host
+call** (a query was appended to the route name rather than the request URL). The
+test was corrected to use the host's `url` argument; the full suite then passed.
+The real browser independently verified download query handling at `/llms.txt`.
+
+Browser artifacts are local in ignored `test-results/llms/` and
+`test-results/regressions/`. The llms.txt settings were restored, and the existing
+journey's temporary article was unpublished with plugin overrides cleared.
+No registry publication or deployed Cloudflare test was performed. The optional
+root route and robots.txt manual setup are documented in [llms.txt](llms-txt.md).
+
 ## 2026-11-03 — Windows QA fixes and EmDash 1.4.0
 
 Windows, Node 24.20.0, npm 11.19.0, Astro 7.4.2, Edge 156.0.4314.58 and

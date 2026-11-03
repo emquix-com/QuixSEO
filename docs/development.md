@@ -50,6 +50,14 @@ untouched. Screenshots and results default to ignored `test-results/regressions/
 set `QUIXSEO_QA_DIR` to choose a dedicated output directory. The old seeded-site
 journey in `tests/browser/smoke.mjs` is not the default test command.
 
+`npm run test:browser:llms` checks the separate llms.txt settings, preview, public
+API, optional root rewrite, HEAD/download responses and disable behavior. It
+temporarily changes only llms.txt configuration, restores its original values in
+`finally`, and verifies robots.txt remains unchanged. It uses the same loopback
+URL and optional `CHROMIUM_PATH`; artifacts go to ignored `test-results/llms/`.
+The test site's `src/pages/llms.txt.ts` is the same optional hosting-site route
+documented in [llms.txt setup](llms-txt.md).
+
 `npm run test:imports` uses the Python launcher on Windows and Python 3 elsewhere.
 Dependencies pin patched Zod/Vitest and compatible Undici 7 / Sharp overrides;
 run `npm audit` as well as the functional checks when updating the lockfile.
