@@ -6,11 +6,17 @@ QuixSEO adds original editorial SEO guidance, readability checks, structured dat
 and reviewed site management to EmDash. It is free, with no accounts, advertising,
 paid features or AI dependency.
 
-**Status: 0.1.0-alpha.1, not production-ready or a 1.0 release.** Tested on EmDash
-1.4.0 (with the fixes also verified on 1.3.1). Both tested versions' sandbox
-bridges cannot write native SEO fields. QuixSEO deliberately refuses such
-writes: title, description, canonical, main image and indexing changes must be
-saved in the core SEO panel. Native bulk edits and migrations are preview-only.
+**Version: 0.0.1.** The tested production target is **Linux, Node 24 and EmDash
+1.4.0**, using the official Node/workerd sandbox. A packaged development build
+passed production browser workflows and restart checks; the final 0.0.1 package
+still needs its release smoke run. Windows development was tested; Windows
+standalone production and deployed Cloudflare are not verified supported targets.
+Cloudflare sandboxed plugins require Workers Paid.
+
+Native SEO title, description, canonical URL, main social image and noindex
+belong to EmDash's SEO panel. The tested sandbox bridges cannot write those
+fields, so QuixSEO refuses native changes. Native bulk edits and migrations are
+preview-only; plugin-owned settings support saving and conditional rollback.
 See [compatibility](docs/compatibility.md) and [remaining work](docs/ROADMAP.md).
 
 Implemented workflows include:
@@ -69,12 +75,14 @@ QuixSEO panel. See [installation](docs/installation.md) for the integration and
 
 `npm run bundle` prepares a local registry-format artifact. The publisher is pinned
 to the verified `emquix.com` identity (`did:plc:6clqzka76ueshbureaecbrfj`).
-Publisher authentication and the remaining release gates in the release checklist
-must be completed before registry submission. Bundling does not publish a release.
+Publisher identity and CLI authentication were verified on 2026-11-04. Complete
+the [release checklist](docs/release.md) before registry submission. Bundling does
+not publish a release. The source package's `private` flag prevents accidental
+npm publication; it does not prevent making the GitHub repository public.
 
 ## Bundled dependency license
 
-The sandbox bundle includes Zod 4.3.6 under the following license. This text is
+The sandbox bundle includes Zod 4.6.7 under the following license. This text is
 included here because the official registry packager includes README.md.
 
 ```text

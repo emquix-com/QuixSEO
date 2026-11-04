@@ -1,14 +1,17 @@
 # Security
 
-This alpha has no production support guarantee. Do not put sensitive customer
+QuixSEO 0.0.1 is provided under the MIT license, without warranty. Review the
+documented platform and feature limits before use. Do not put sensitive customer
 content in the disposable test fixture. Use GitHub private vulnerability
 reporting if enabled on this repository; otherwise contact Webtaculos privately
 through https://webtaculos.com. Do not disclose credentials in public issues.
 
 QuixSEO requests content/schema read, explicit editor-draft read and redirect
 write capabilities. It makes no network requests and has no secret storage or
-AI module. User-provided URLs are data, never fetch targets. Public rendering
-reads at most site settings and the current entry's plugin configuration.
+AI module. User-provided URLs are data, never fetch targets. Ordinary metadata
+rendering reads site settings and the current entry's plugin configuration. The
+separate opt-in public llms.txt route performs bounded published-content reads,
+excluding drafts, noindex entries and other documented ineligible URLs.
 
 Host permissions plus application role checks protect routes. Editor identity
 comes from the host, not a submitted collection/id. Plugin data changes require

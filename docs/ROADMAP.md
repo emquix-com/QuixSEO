@@ -1,36 +1,48 @@
 # Prioritized remaining work
 
-## P0 — release blockers
+## 0.0.1 publication
 
-- Upstream sandbox native SEO update support plus atomic conditional writes;
-  then enable native editor/bulk/migration apply and test concurrent core edits.
-- Expand the passing local browser journey to full keyboard/mobile coverage
-  and certify deployed Cloudflare resource limits. Expand large database audit benchmarks beyond the
-  existing 10,000-document pure analyzer test.
-- Implement a usable field-based bulk/migration mapper and schema forms. JSON
-  controls are functional but do not satisfy the intended finished product UX.
-- Independent authorization, data-integrity and security review; automated
-  retention/cleanup and failure recovery for persistent job history.
-- Full test with the actual competing SEO plugin and representative themes.
-- Verify registry publisher ownership and packaging under that identity.
+- Finalize the release commit and changelog, run checks/bundle and the Linux
+  production smoke workflow on it, and record the artifact checksum.
+- Make documentation accessible at launch and complete registry admission,
+  publication and a clean installation under the verified EmQuix DID.
+- Keep supported platforms and preview-only native SEO operations explicit.
+  See [release checklist](release.md) and [compatibility](compatibility.md).
 
-## P1 — complete site management
+Publisher verification, automatic bounded audits, editor conflict protection,
+Linux production runtime/restart checks and the audit-page sorting fix are
+implemented and tested. They are not future feature requests.
 
-- Durable automatic audit stepping/progress with supported scheduling, severity
-  filters and prioritized cross-site actions. Never scan every page on render.
-- Complete paginated internal-link graph and suggestions across all content,
-  known-target broken-link checks, sitemap/robots consistency and schema coverage.
-- Full redirect chain/loop graph and pattern conflict handling with conflict-safe
-  imports, resumable batch export and journaled rollback where core permits.
-- Locale-specific metadata defaults, custom rich-block extractors and additional
-  language rule packs with native-language tests.
-- Wider migration support for global settings, safe decoded schema and verified
-  source export formats; preserve explicit mappings and incompatibility warnings.
+## Compatibility and verification priorities
 
-## P2 — optional enhancements
+- Resolve the upstream Windows sandbox executable-path failure and verify
+  Windows production before adding it to the supported scope.
+- Test deployed Cloudflare on Workers Paid; local Worker Loader tests do not
+  certify deployed limits or Cloudflare Free compatibility.
+- Expand production authentication, keyboard/mobile, representative themes and
+  actual competing-plugin coverage. Perform an independent security review.
+- Expand runtime/database benchmarks beyond the small production smoke dataset,
+  local 38-entry audit and pure analyzer performance tests.
+- Verify real Yoast/Rank Math exports; current conversion/import evidence uses
+  labeled fixtures, not a complete real-world interoperability claim.
 
-- BYOK AI with supported secret storage, explicit content-sharing consent,
-  cost estimates and review-only suggestions. Keep every core workflow usable
-  without AI or an account.
-- Optional analytics integrations and richer previews, only through real
-  sandbox-supported APIs. No paid feature gates.
+## Product improvements
+
+- Native SEO bulk/migration application requires upstream sandbox support and
+  atomic conditional writes. Until verified, keep those operations preview-only
+  and preserve refusal of mixed plans without partial writes.
+- Add field-based bulk/migration mapping and type-specific schema forms alongside
+  the JSON controls. Preserve explicit confirmation and conflict checks.
+- Add retention/cleanup controls and broaden stored-job recovery tests.
+- Extend link-graph coverage, global candidate ranking, known-target broken-link
+  checks and sitemap/robots consistency checks.
+- Extend redirect pattern/global chain inspection, batch import/export and
+  journaled rollback where core permits.
+- Add locale-specific defaults, language rule packs, custom rich-block extractors
+  and broader migration mappings.
+
+## Optional enhancements
+
+- BYOK AI only with supported secret storage, explicit sharing consent, cost
+  estimates and review-only suggestions. Keep core features usable without AI.
+- Analytics integrations only through supported sandbox APIs. No paid feature gates.

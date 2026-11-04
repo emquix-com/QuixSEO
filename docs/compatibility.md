@@ -1,6 +1,22 @@
 # Compatibility and platform limitations
 
-## Release-blocking native SEO write gap
+## Verified platform scope
+
+The tested production target for 0.0.1 is Linux, Node 24, EmDash 1.4.0 and
+@emdash-cms/sandbox-workerd 0.9.6. A packaged development artifact passed the
+Linux production journey and restart checks; the final 0.0.1 archive still needs
+its release smoke run. See [test results](TEST-RESULTS.md).
+
+Windows development works in the tested installation. Windows standalone Node
+production did not load the sandbox: the runner expected workerd/bin/workerd.exe
+while the native binary was under @cloudflare/workerd-windows-64/bin. No core
+patch or binary-copy workaround is included; this is not a supported production
+target for the tested combination.
+
+Deployed Cloudflare is untested. Worker Loader requires Workers Paid; Cloudflare
+Free cannot run this sandboxed package. See [Cloudflare pricing](https://developers.cloudflare.com/dynamic-workers/pricing/).
+
+## Native SEO write limitation
 
 EmDash 1.3.1 and 1.4.0 expose `seo` in the native content update contract, but both actual
 sandbox bridge implementations send the update data to `updateDraftAware`
@@ -67,9 +83,10 @@ and [November verification results](TEST-RESULTS.md#2026-11-03--windows-qa-fixes
 - Language formulas support English only. Structural checks remain available
   elsewhere; multilingual schemas/locale routing depend on core.
 - Bulk filters apply to the displayed page. Rich bulk editing and schema use
-  JSON fields in this alpha; a polished field-mapping/form experience is pending.
-- Registry identity is deliberately `quixseo.invalid`. CLI validation/build
-  success does not establish registry publication eligibility.
+  JSON fields in 0.0.1; a polished field-mapping/form experience is pending.
+- Publisher identity and CLI authentication were verified for emquix.com, pinned
+  to did:plc:6clqzka76ueshbureaecbrfj. Registry admission, publication and clean
+  installation remain separate checks; offline validation does not prove them.
 
 No actual competitor plugin installation or deployed Cloudflare certification
 is claimed. Turn metadata/schema output off in all but one SEO plugin. A second

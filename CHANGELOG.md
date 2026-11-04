@@ -1,6 +1,29 @@
 # Changelog
 
-## Unreleased — optional llms.txt (2026-11-03)
+## 0.0.1 — pending publication
+
+- First planned public release under the verified emquix.com publisher identity.
+- Editorial SEO/readability guidance, saved/unsaved draft analysis and search
+  appearance previews using native EmDash SEO fields.
+- Separate one-click saves for keyphrases, cornerstone, additional robots flags,
+  social overrides and validated schema configuration, with stale-form protection.
+- Automatic bounded site audits, duplicate metadata findings, internal-link
+  guidance, paginated results/history and page-preserving filtering/sorting.
+- Reviewed plugin-owned bulk changes, conditional rollback, mapped Yoast/Rank Math
+  fixture imports and native SEO previews; no unsupported native SEO writes.
+- Reviewed exact-path redirects with validation and core 404-report guidance.
+- Optional llms.txt generator with public text endpoint, preview/download and a
+  documented host root route; disabled by default and no external AI calls.
+- Packaged Linux Node/EmDash 1.4 production workflows and restart were verified
+  on a development artifact. The final 0.0.1 package still needs release checks.
+- Native metadata remains owned by EmDash. Windows standalone production and
+  deployed Cloudflare are not verified supported targets; see
+  [compatibility](docs/compatibility.md).
+
+The development notes below preserve implementation history. Historical test
+versions/checksums are not evidence that the final 0.0.1 artifact was tested.
+
+## Development history — optional llms.txt (2026-11-03)
 
 - Add administrator-controlled, disabled-by-default llms.txt generation with
   collection selection, public summary, preview and download.
@@ -12,7 +35,7 @@
   modifying core robots.txt, and `Llms:` is not a standard directive.
 - Preserve the updated EmDash 1.4 editor saves, SEO settings and Windows config.
 
-## Unreleased — local QA fixes and EmDash 1.4 (2026-11-03)
+## Development history — local QA fixes and EmDash 1.4 (2026-11-03)
 
 - Preserve omitted plugin settings in partial bulk updates; verify preview,
   multi-entry apply and conditional rollback with non-default existing values.
@@ -26,7 +49,7 @@
   and a portable Python fixture-test launcher.
 - Preserve local Windows configuration, SQLite content and historical audits.
 
-## Unreleased — draft workflow and automatic audits (2026-10-26)
+## Development history — draft workflow and automatic audits (2026-10-26)
 
 - Read the current entry’s saved draft revision with the new `content:revisions:read` capability; label fallback and current-editor sources honestly.
 - Add **Analyze current editor** to the sidebar with full analysis, configured Portable Text fields and equivalent saved SEO/settings. Preserve scoring model 2.
@@ -36,7 +59,7 @@
 - Use Zod 4.3.6 Mini from the existing dependency to keep the backend below EmDash’s 128 KB file cap; preserve strict validation rules.
 - Add regression coverage and [workflow/manual-test documentation](docs/editor-and-audits.md). No public release or registry submission.
 
-## Unreleased — URL resilience and scoring model 2 (2026-10-22)
+## Development history — URL resilience and scoring model 2 (2026-10-22)
 
 - Load saved and unsaved content analysis without a configured Site URL; show
   actionable warnings and N/A URL checks instead of throwing or guessing routes.
@@ -49,7 +72,7 @@
 - Add regression coverage for URL recovery, article shapes, neutral optional
   checks, metadata provenance, non-English content and real sandbox workflows.
 
-## 0.1.0-alpha.1 — unreleased
+## Initial development — 2026-10-21
 
 - Independently implemented TypeScript editorial and English readability rules.
 - Added Block Kit editor/settings, social metadata and validated schema graphs.
@@ -58,6 +81,6 @@
 - Added exact-path core redirect administration and export.
 - Verified the official Worker Loader sandbox boundary and authorization.
 - Blocked native SEO mutations after real integration tests exposed an EmDash
-  1.3.1 bridge limitation. This is a release blocker, not a completed feature.
+  1.3.1 bridge limitation. These fields remain preview-only in 0.0.1.
 
-No 1.0 release has been made.
+No registry release has been made during the recorded development work.

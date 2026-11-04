@@ -2,9 +2,13 @@
 
 **Is it free?** Yes. There are no paid features, ads, account requirements or
 artificial commercial limits. Batch limits protect sandbox resources.
+Hosting costs are separate; Cloudflare's sandbox runtime requires Workers Paid.
 
-**Is it ready for production?** No. This is an alpha with explicit platform and
-product gaps. See the feature ledger and release checklist.
+**Which production setup has been tested?** Linux, Node 24 and EmDash 1.4.0
+with the official workerd sandbox passed the packaged-plugin browser journey
+and restart checks. The final 0.0.1 archive needs its release smoke run. Windows
+standalone production and deployed Cloudflare are not verified supported targets.
+Read [compatibility](compatibility.md) before installation.
 
 **Why can't I save a title here?** The tested EmDash 1.3.1 and 1.4.0 sandbox bridges cannot update
 native SEO. Use the core SEO panel; QuixSEO can still analyze and preview it.
@@ -19,7 +23,7 @@ canonical tags and indexing settings. Configure these in EmDash.
 
 **Can I use another SEO plugin?** Keep one metadata/schema owner. QuixSEO's
 analysis works with its output disabled. Full competitor coexistence is not
-certified for this alpha.
+verified for 0.0.1.
 
 **Are drafts analyzed?** Saved drafts can be analyzed in the authorized panel.
 The sidebar reads the current saved revision and labels unpublished changes.

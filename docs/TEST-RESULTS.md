@@ -1,5 +1,36 @@
 # Verification history
 
+## 2026-11-04 — current release preparation
+
+The planned public version is 0.0.1. Earlier sections below describe development
+builds and retain their original test counts, environments and checksums. They
+are historical records, not claims that the final 0.0.1 archive has passed.
+
+- Publisher emquix.com and DID did:plc:6clqzka76ueshbureaecbrfj verified; official
+  CLI login confirmed the matching identity.
+- [Linux production smoke run 41812539727](https://github.com/alexandru-b/QuixSEO/actions/runs/41812539727)
+  passed commit 4c8780a on Linux/Node 24.22.1, EmDash 1.4.0 and Chromium
+  156.0.8078.4. All 11 regression and 4 llms.txt workflow checks passed, with no
+  recorded browser errors/failed requests. Sandbox load, disabled development
+  bypasses and completed audit/content persistence after restart were verified.
+  Archive SHA256: 74641d6141a423dbf2db3198798668df8349db5979dc84561465c2f803840b90.
+- Authentication reused a native session created during disposable development
+  setup; fresh production signup/login/recovery was not certified.
+- Audit-page sorting fix 7240f49 passed TypeScript/lint, 157 unit tests,
+  27 official sandbox tests, validation/build/bundle and real-browser page-four
+  checks. Title sorting/filtering retained all nine entries on the last page;
+  next-page navigation retained ordering. CI passed that commit.
+- The local clean host exercised 38 published entries across Posts/Pages, audit
+  and bulk pagination, role restrictions, social/schema edges and synthetic
+  migration rollback. These checks do not certify arbitrary site scale or real
+  source-plugin exports.
+
+Windows development was exercised; Windows standalone production still failed
+sandbox loading on the tested runner. Deployed Cloudflare remains untested and
+requires Workers Paid for sandboxed plugins. No registry publication or registry
+installation/update has been verified. Run the production smoke workflow again
+on the final 0.0.1 release commit and record that artifact's checksum.
+
 ## 2026-11-03 — optional llms.txt generation
 
 Built on upstream `f9b3e50` (including the user's EmDash 1.4 and editor-save
@@ -83,7 +114,7 @@ was performed.
 ## Draft workflow and automatic audit validation — 2026-10-26
 
 Target: EmDash 1.3.1, Node 24.19.0; the same pinned official CLI, sandbox runner
-and test host as the historical reports. This is an alpha, not 1.0 certification.
+and test host as the historical reports. This is historical development-build evidence, not certification of the final release.
 
 | Check actually run | Result |
 |---|---|
@@ -145,7 +176,7 @@ extra cron capability is requested. No release or registry submission was made.
 Updated from upstream `05390dc37916093000991e488c50f428b5c77c95` without
 reverting its preview/rollback improvements or compact status badges.
 Environment versions remain those listed in the historical report below.
-This remains an alpha, not a 1.0 release certification.
+This remains historical development-build evidence, not final-release certification.
 
 | Check actually run for this change | Result |
 |---|---|
@@ -198,7 +229,7 @@ metadata generation or change-journal semantics were changed by this task.
 
 # Historical test results — 2026-10-21
 
-This is evidence for **0.1.0-alpha.1**, not a production/1.0 certification.
+This records a historical development artifact predating 0.0.1, not final-release certification.
 Environment: Linux x64, Node 24.19.0, EmDash 1.3.1, plugin-cli 0.13.4,
 plugin-test 0.2.10, sandbox-workerd 0.9.5, Astro 7.4.2, Vite 8.3.5,
 Vitest 4.1.11, Playwright 1.64.1 and system Chromium.
@@ -271,12 +302,12 @@ remote crawl, production-scale database benchmark or independent security review
 has been completed. Registry eligibility and publisher ownership are not
 established by offline CLI validation. See compatibility.md and ROADMAP.md.
 
-## 1.0 acceptance ledger
+## Historical acceptance ledger (2026-10-21)
 
 | Criterion | Status |
 |---|---|
 | Real installation | Local Node/workerd demonstrated |
-| Functional primary admin | Alpha workflows demonstrated; finished bulk/schema UX pending |
+| Functional primary admin | Development workflows demonstrated; finished bulk/schema UX pending |
 | Actual content analysis | Demonstrated |
 | Recommendations use real data | Demonstrated within documented extraction limits |
 | Metadata/schema public output | Demonstrated locally |
@@ -294,7 +325,7 @@ Historical local package SHA-256:
 `3551dd9881513ae49271bc1e4ecf4e2cc1b7107d009d47fb40c218622805002b`.
 The first screenshot-inclusive package exceeded the CLI's 256 KB cap. The final
 package uses two real JPEG captures; the setup screenshot remains in source docs.
-Zod 4.3.6 is the only non-development dependency and is MIT-licensed; its full
+Zod 4.3.6 was the only non-development dependency in that historical build and is MIT-licensed; its full
 notice and QuixSEO's original MIT notice are included in the bundled README.
 The dependency audit is an advisory check, not an independent security audit.
 

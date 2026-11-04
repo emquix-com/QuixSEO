@@ -15,8 +15,11 @@
    to inspect unsaved fields in the full sidebar. See [editor and audit workflows](editor-and-audits.md)
    for collection/field selectors and partial coverage. Unsupported blocks are explicit.
 6. Set phrases, cornerstone, additional nofollow/nosnippet, social overrides or
-   schema. Preview the change, review before/after values, and confirm. Native media IDs and relative canonical paths are preserved. Native
-   fields must remain unchanged in this form: edit those in EmDash's SEO panel.
+   schema, then choose **Save QuixSEO settings**. Refresh to confirm persistence.
+   This is separate from EmDash's ordinary entry Save: saving the article does
+   not save unsaved QuixSEO fields. Edit native SEO fields in EmDash's SEO panel.
+   Bulk and migration operations still require a before/after preview and explicit
+   confirmation. Native metadata stays unchanged by plugin-only operations.
 7. Start an audit once from Overview. The host scheduler advances bounded scan
    and assessment batches. Use Refresh status to inspect progress, or Resume audit
    if scheduling is unavailable. Counts remain provisional until both phases finish.

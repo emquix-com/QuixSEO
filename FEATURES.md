@@ -19,13 +19,13 @@ QuixSEO implementation status is updated after verification.
 | Redirect manager | Paid | Yes | Core; plugin fuzzy suggestions | Validation and bounded import/export |
 | 404 monitoring | No full free manager | Yes | Core original-path log | Reuse core UI; no sandbox log API |
 | Site audit | Limited | Yes | No editorial site audit | Resumable local audit |
-| Bulk metadata | Yes | Yes | Per-entry core fields | Preview, conflict checks, history/rollback |
-| SEO migration | Yes | Yes | Core WordPress field import | File mapping into native SEO and plugin data |
+| Bulk metadata | Yes | Yes | Per-entry core fields | Native previews; plugin-owned writes, conflicts and rollback |
+| SEO migration | Yes | Yes | Core WordPress field import | Native previews and mapped plugin-owned imports |
 | Analytics integrations | Limited/integrations | Yes | Not required | Deferred; no account required |
 | AI suggestions | Paid/service dependent | Service dependent | Not required | Deferred, optional future BYOK |
 | Registry sandbox distribution | WordPress plugin | WordPress plugin | Existing competitor native | Official sandbox format and Block Kit |
 
-## Verified alpha implementation ledger
+## 0.0.1 implementation ledger
 
 | Module | Current behavior | Remaining work |
 |---|---|---|
@@ -42,6 +42,7 @@ QuixSEO implementation status is updated after verification.
 | AI | No dependency, no network requests | Optional BYOK later |
 | llms.txt | Opt-in public Markdown generator, bounded published-title links, preview/download, optional site root route | Root route requires site setup; robots.txt comment is manual; no full-site/multilingual index or guaranteed AI visibility |
 
-These are working alpha workflows, not full feature parity. The comparison above
-shows the intended division of responsibility, not a claim that every item ships.
+These are implemented workflows with explicit limits, not full feature parity.
+The comparison above shows the intended division of responsibility, not a claim
+that every item ships.
 Read [test results](docs/TEST-RESULTS.md) and [roadmap](docs/ROADMAP.md) before use.

@@ -9,5 +9,5 @@ but its source was also not reused.
 The runtime bundle uses Zod (MIT). EmDash and its Block Kit/types/official CLI
 and test tools are separate platform/development dependencies under their
 respective licenses. Preserve dependency notices when redistributing bundled
-third-party code. package-lock.json records exact resolved packages; a complete
-transitive production/development license report must be reviewed before 1.0.
+third-party code. package-lock.json records exact resolved packages. Review
+dependency notices and the release archive before publication.

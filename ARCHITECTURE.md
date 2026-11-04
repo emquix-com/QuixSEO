@@ -129,9 +129,9 @@ checks. Record what actually ran in docs/TEST-RESULTS.md.
 
 AI, remote crawling, analytics accounts, automatic redirects and automatic
 publishing are excluded from the first milestone. No network or secret
-permission is requested for absent features. 1.0.0 and registry publication
-remain blocked until all acceptance criteria and verified publisher identity
-are satisfied. No release workflow publishes automatically.
+permission is requested for absent features. The 0.0.1 scope and publication
+checks are in docs/release.md. Publisher identity is verified; registry admission
+and installation remain separate checks. No release workflow publishes automatically.
 
 ## Integration findings — 2026-10-21
 
