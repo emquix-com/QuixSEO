@@ -53,14 +53,19 @@ function launch(command, args, log, env = {}) {
 }
 async function run(command, args, log, env) {
   const child = launch(command, args, log, env);
-  await new Promise((done, reject) => {
-    child.once("error", reject);
-    child.once("exit", (code, signal) =>
-      code === 0
-        ? done()
-        : reject(new Error(`${log} failed: exit ${code}, signal ${signal}`)),
-    );
-  });
+  try {
+    await new Promise((done, reject) => {
+      child.once("error", reject);
+      child.once("close", (code, signal) =>
+        code === 0
+          ? done()
+          : reject(new Error(`${log} failed: exit ${code}, signal ${signal}`)),
+      );
+    });
+  } catch (error) {
+    console.error(await readFile(join(output, log), "utf8"));
+    throw error;
+  }
 }
 async function stop() {
   if (!server || server.exitCode !== null || server.signalCode !== null) return;
@@ -177,6 +182,18 @@ export default defineConfig({site:${JSON.stringify(base)},output:'server',adapte
     `${base}/_emdash/api/setup/dev-bypass?content=0&redirect=/_emdash/admin`,
   );
   await page.waitForURL("**/admin");
+  // A fresh account opens core's welcome modal in every new browser context
+  // until it is dismissed. Complete the native UI before exporting the session.
+  const dismissed = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/_emdash/api/auth/me") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Get Started", exact: true }).click();
+  assert((await dismissed).ok(), "Native welcome dismissal failed");
+  await page
+    .getByRole("button", { name: "Get Started", exact: true })
+    .waitFor({ state: "hidden" });
   async function api(path, method = "GET", data) {
     const response = await context.request.fetch(
       `${base}/_emdash/api/${path}`,
@@ -193,6 +210,7 @@ export default defineConfig({site:${JSON.stringify(base)},output:'server',adapte
     );
     return body.data;
   }
+  assert.equal((await api("auth/me")).isFirstLogin, false);
   await api("schema/collections/posts", "PUT", {
     hasSeo: true,
     routable: true,
