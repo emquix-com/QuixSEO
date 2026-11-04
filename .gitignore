@@ -5,6 +5,7 @@ dist/
 .wrangler/
 coverage/
 test-results/
+qa-results/
 playwright-report/
 *.db
 *.db-*
