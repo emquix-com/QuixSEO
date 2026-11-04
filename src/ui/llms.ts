@@ -72,7 +72,7 @@ export async function llmsBlocks(ctx: PluginContext): Promise<Block[]> {
       label: "Root URL and robots.txt setup",
       target: {
         kind: "external",
-        url: "https://github.com/alexandru-b/QuixSEO/blob/main/docs/llms-txt.md",
+        url: "https://github.com/emquix-com/QuixSEO/blob/main/docs/llms-txt.md",
       },
     }),
     {

@@ -8,7 +8,7 @@ are historical records, not claims that the final 0.0.1 archive has passed.
 
 - Publisher emquix.com and DID did:plc:6clqzka76ueshbureaecbrfj verified; official
   CLI login confirmed the matching identity.
-- [Linux production smoke run 41812539727](https://github.com/alexandru-b/QuixSEO/actions/runs/41812539727)
+- [Linux production smoke run 41812539727](https://github.com/emquix-com/QuixSEO/actions/runs/41812539727)
   passed commit 4c8780a on Linux/Node 24.22.1, EmDash 1.4.0 and Chromium
   156.0.8078.4. All 11 regression and 4 llms.txt workflow checks passed, with no
   recorded browser errors/failed requests. Sandbox load, disabled development
