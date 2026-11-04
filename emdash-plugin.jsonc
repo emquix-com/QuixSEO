@@ -1,8 +1,8 @@
 {
   "$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
   "slug": "quixseo",
-  // Reserved development identity, deliberately unpublishable until Webtaculos supplies its verified Atmosphere DID.
-  "publisher": "quixseo.invalid",
+  // Verified emquix.com publishing identity; pin the durable DID across handle changes.
+  "publisher": "did:plc:6clqzka76ueshbureaecbrfj",
   "name": "QuixSEO",
   "description": "Complete SEO Toolkit for EmDash · EmQuix — editorial guidance, structured data and reviewed site management.",
   "license": "MIT",

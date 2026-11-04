@@ -67,9 +67,10 @@ QuixSEO panel. See [installation](docs/installation.md) for the integration and
 - [Developer guide and tests](docs/development.md) · [Test results](docs/TEST-RESULTS.md)
 - [Release checklist](docs/release.md) · [Security](SECURITY.md)
 
-`npm run bundle` prepares a local registry-format artifact. The development
-publisher is deliberately unpublishable. No registry submission, npm publication,
-GitHub release or 1.0 tag is authorized or included in this milestone.
+`npm run bundle` prepares a local registry-format artifact. The publisher is pinned
+to the verified `emquix.com` identity (`did:plc:6clqzka76ueshbureaecbrfj`).
+Publisher authentication and the remaining release gates in the release checklist
+must be completed before registry submission. Bundling does not publish a release.
 
 ## Bundled dependency license
 

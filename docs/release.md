@@ -16,9 +16,17 @@ Before publication:
 2. Run automated, Node/workerd browser and deployed Cloudflare checks, large
    dataset budgets, independent security review and actual competitor coexistence.
 3. Verify all user-facing claims, screenshots, migration mappings and licensing.
-4. Confirm Webtaculos's verified Atmosphere publisher identity. Replace reserved
-   `quixseo.invalid` with that exact verified identity and rebuild. GitHub ownership
-   does not establish registry ownership.
+4. Authenticate the official CLI as `emquix.com` and verify its active session is
+   `did:plc:6clqzka76ueshbureaecbrfj`, the publisher pinned in the manifest.
+   Public handle resolution and the DID document were verified on 2026-11-04.
+   The official CLI login and active publisher session were also verified on
+   2026-11-04 with that exact DID. This does not publish a package or establish
+   registry admission.
+   The official CLI login and active publisher session were also verified on
+   2026-11-04 with that exact DID. This does not publish a package or establish
+   registry admission.
+   GitHub ownership does not establish registry ownership; public identity
+   resolution alone does not establish an authenticated publishing session.
 5. Prepare a reviewed changelog, artifact checksums and rollback instructions.
 6. Obtain explicit user approval before a public release or registry submission.
 
