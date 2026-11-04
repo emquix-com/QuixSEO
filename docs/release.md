@@ -30,5 +30,9 @@ Before publication:
 5. Prepare a reviewed changelog, artifact checksums and rollback instructions.
 6. Obtain explicit user approval before a public release or registry submission.
 
+For the Linux Node production runtime gate, run the manual
+[production smoke workflow](production-smoke.md) and inspect its results and
+screenshots. Creating the workflow is not evidence that the gate has passed.
+
 No workflow in this repository publishes, releases or submits to the registry.
 Offline manifest validation is necessary but not sufficient for admission.

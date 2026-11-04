@@ -22,7 +22,8 @@
     "dev:site": "astro dev --root test-site",
     "test:imports": "node scripts/test-imports.mjs",
     "test:browser": "node tests/browser/regressions.mjs",
-    "test:browser:llms": "node tests/browser/llms.mjs"
+    "test:browser:llms": "node tests/browser/llms.mjs",
+    "test:production": "node scripts/test-production.mjs"
   },
   "dependencies": {
     "zod": "4.6.7"

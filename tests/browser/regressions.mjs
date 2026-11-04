@@ -17,6 +17,9 @@ const browser = await chromium.launch({
 });
 const context = await browser.newContext({
   viewport: { width: 1440, height: 1000 },
+  ...(process.env.QUIXSEO_AUTH_STATE
+    ? { storageState: process.env.QUIXSEO_AUTH_STATE }
+    : {}),
 });
 context.setDefaultTimeout(15000);
 const page = await context.newPage();
@@ -91,10 +94,12 @@ async function bulk(proposal) {
   await page.getByText("Review changes", { exact: true }).waitFor();
 }
 try {
-  await page.goto(
-    `${base}/_emdash/api/setup/dev-bypass?redirect=/_emdash/admin`,
-  );
-  await page.waitForURL("**/admin");
+  if (!process.env.QUIXSEO_AUTH_STATE) {
+    await page.goto(
+      `${base}/_emdash/api/setup/dev-bypass?redirect=/_emdash/admin`,
+    );
+    await page.waitForURL("**/admin");
+  }
   item = (
     await api("content/posts", "POST", {
       slug: `qa-regression-${Date.now()}`,
@@ -347,7 +352,9 @@ try {
   await page
     .getByRole("button", { name: "Start a new site review", exact: true })
     .waitFor({ state: "hidden" });
-  await page.getByText("Completed", { exact: true }).waitFor();
+  await page
+    .getByText("Completed", { exact: true })
+    .waitFor({ timeout: 180000 });
   await page
     .getByRole("button", { name: "View audit results", exact: true })
     .click();

@@ -4,14 +4,18 @@ import { chromium, expect, request } from "@playwright/test";
 
 const base = process.env.QUIXSEO_TEST_URL || "http://127.0.0.1:4321";
 assert(["127.0.0.1", "localhost", "[::1]"].includes(new URL(base).hostname));
-const output = "test-results/llms";
+const output = process.env.QUIXSEO_QA_DIR || "test-results/llms";
 await mkdir(output, { recursive: true });
 const browser = await chromium.launch({
   ...(process.env.CHROMIUM_PATH
     ? { executablePath: process.env.CHROMIUM_PATH }
     : {}),
 });
-const context = await browser.newContext();
+const context = await browser.newContext(
+  process.env.QUIXSEO_AUTH_STATE
+    ? { storageState: process.env.QUIXSEO_AUTH_STATE }
+    : {},
+);
 const anonymous = await request.newContext();
 const page = await context.newPage();
 page.setDefaultTimeout(20000);
@@ -42,10 +46,12 @@ async function save(config) {
 }
 try {
   const robotsBefore = await (await anonymous.get(`${base}/robots.txt`)).text();
-  await page.goto(
-    `${base}/_emdash/api/setup/dev-bypass?redirect=/_emdash/admin`,
-  );
-  await page.waitForURL("**/admin");
+  if (!process.env.QUIXSEO_AUTH_STATE) {
+    await page.goto(
+      `${base}/_emdash/api/setup/dev-bypass?redirect=/_emdash/admin`,
+    );
+    await page.waitForURL("**/admin");
+  }
   await settings();
   original = {
     enabled: await field("enabled").isChecked(),
