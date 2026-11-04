@@ -818,14 +818,73 @@ it.each([
     count,
   );
   expect(await host.inspect.scheduledTasks()).toHaveLength(0);
-  const results = await host.admin.act("/dashboard", "audit-results", {
+  let results = await host.admin.act("/dashboard", "audit-results", {
     value: job.id,
     user: admin,
   });
   noError(results);
   expect(JSON.stringify(results)).toContain("SEO audit results");
   expect(JSON.stringify(results)).toContain("Back to audit");
-  if (count === 80) expect(JSON.stringify(results)).toContain("Next results");
+  if (count === 80) {
+    for (let page = 1; page < 4; page++) {
+      const next = results.blocks
+        .flatMap((b) => (b.type === "actions" ? b.elements : []))
+        .find((e) => e.type === "button" && e.action_id === "reports-next");
+      if (next?.type !== "button") throw new Error("Missing next page");
+      results = await host.admin.act("/dashboard", "reports-next", {
+        user: admin,
+        value: next.value,
+      });
+      noError(results);
+    }
+    const titles = (r: typeof results) => {
+      const table = r.blocks.find((b) => b.type === "table");
+      if (table?.type !== "table") throw new Error("Missing audit table");
+      return table.rows.map((row) => String(row.title));
+    };
+    const before = titles(results);
+    const form = results.blocks.find((b) => b.type === "form");
+    if (form?.type !== "form") throw new Error("Missing page options");
+    const sorted = await host.admin.submit(
+      "/dashboard",
+      form.submit.action_id,
+      { filter: "all", sort: "title" },
+      { user: admin, blockId: form.block_id },
+    );
+    noError(sorted);
+    expect(titles(sorted)).toEqual(
+      [...before].sort((a, b) => a.localeCompare(b)),
+    );
+    const reapplied = await host.admin.submit(
+      "/dashboard",
+      form.submit.action_id,
+      { filter: "all", sort: "lowest-score" },
+      { user: admin, blockId: form.block_id },
+    );
+    noError(reapplied);
+    expect(titles(reapplied).sort()).toEqual([...before].sort());
+    const next = sorted.blocks
+      .flatMap((b) => (b.type === "actions" ? b.elements : []))
+      .find((e) => e.type === "button" && e.action_id === "reports-next");
+    if (next?.type !== "button")
+      throw new Error("Missing next page after sorting");
+    expect(next.value).toMatchObject({ filter: "all", sort: "title" });
+    const advanced = await host.admin.act("/dashboard", "reports-next", {
+      user: admin,
+      value: next.value,
+    });
+    noError(advanced);
+    expect(titles(advanced).every((title) => !before.includes(title))).toBe(
+      true,
+    );
+    const mismatched = await host.admin.submit(
+      "/dashboard",
+      `reports-filter:${crypto.randomUUID()}`,
+      { filter: "all", sort: "title" },
+      { user: admin, blockId: form.block_id },
+    );
+    expect(JSON.stringify(mismatched)).toContain("Audit page does not match");
+  }
 }, 120000);
 
 it("saves ordinary settings in one sandboxed form submit, detects stale forms and preserves draft state", async () => {

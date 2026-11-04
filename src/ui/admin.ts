@@ -374,15 +374,28 @@ async function renderAdmin(
     blocks = auditBlocks(job);
   } else if (a === "audit-results")
     blocks = await reportsView(ctx, uuid.parse(i.value));
-  else if (a?.startsWith("reports-filter:"))
+  else if (a?.startsWith("reports-filter:")) {
+    const id = uuid.parse(a.slice("reports-filter:".length));
+    const page = i.block_id?.startsWith("reports-page:")
+      ? z
+          .object({
+            id: uuid,
+            cursor: z.optional(z.string().check(z.maxLength(4096))),
+          })
+          .parse(JSON.parse(i.block_id.slice("reports-page:".length)))
+      : undefined;
+    if (page && page.id !== id)
+      throw new Error(
+        "Audit page does not match this review. Reload the results.",
+      );
     blocks = await reportsView(
       ctx,
-      uuid.parse(a.slice("reports-filter:".length)),
-      undefined,
+      id,
+      page?.cursor,
       z.enum(["all", "needs-attention", "unavailable"]).parse(v.filter),
       z.enum(["lowest-score", "title"]).parse(v.sort),
     );
-  else if (a === "reports-next") {
+  } else if (a === "reports-next") {
     const p = z
       .object({
         id: uuid,

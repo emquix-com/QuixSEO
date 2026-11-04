@@ -231,15 +231,20 @@ export async function reportsView(
     context(
       `${job.processed} entries scanned · ${job.assessed} assessed. ${job.phase === "complete" ? "Completed audit snapshot." : "Partial findings; this audit has not completed."}`,
     ),
-    form(`reports-filter:${id}`, "Apply page options", [
-      select(
-        "filter",
-        "Show on this page",
-        ["all", "needs-attention", "unavailable"],
-        filter,
-      ),
-      select("sort", "Order this page", ["lowest-score", "title"], sort),
-    ]),
+    {
+      ...form(`reports-filter:${id}`, "Apply page options", [
+        select(
+          "filter",
+          "Show on this page",
+          ["all", "needs-attention", "unavailable"],
+          filter,
+        ),
+        select("sort", "Order this page", ["lowest-score", "title"], sort),
+      ]),
+      // Forms have no hidden fields or submit value in Block Kit. Carry the
+      // page context in block_id while keeping the action ID short and stable.
+      block_id: `reports-page:${JSON.stringify({ id, cursor, filter, sort })}`,
+    },
     context(
       "Filters and ordering apply to this page of up to 10 entries. Continue through pages to review the entire audit.",
     ),
