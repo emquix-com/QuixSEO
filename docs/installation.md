@@ -1,10 +1,10 @@
-# Installation — QuixSEO 0.0.1
+# Installation — QuixSEO 0.0.2
 
 ## Tested platform
 
 The tested production target is Linux, Node 24, EmDash 1.4.0, Astro 7.4.2 and
-@emdash-cms/sandbox-workerd 0.9.6. A packaged development build passed browser
-and restart checks; the final 0.0.1 archive still needs its release smoke run.
+@emdash-cms/sandbox-workerd 0.9.6. A packaged 0.0.2 build passed production browser
+and restart checks on commit `53f0df2`.
 See [compatibility](compatibility.md) for platform and feature boundaries.
 
 Windows development was tested. Windows standalone production failed to load
@@ -13,7 +13,7 @@ Worker Loader requires Workers Paid; Cloudflare Free cannot run this package.
 
 ## Registry installation
 
-Publication is pending. After publication, locate QuixSEO under the verified
+Version 0.0.2 is publicly listed. Locate QuixSEO under the verified
 emquix.com publisher in EmDash's plugin registry. Review the requested access,
 including the public read-only llms.txt route, before installation. Do not infer
 registry availability from a successful local bundle. A clean registry install
@@ -22,7 +22,7 @@ and update must be verified as part of publication.
 ## Local archive installation
 
 Run `npm ci` and `npm run bundle` in the source checkout to produce
-`dist/quixseo-0.0.1.tar.gz`. Verify the recorded checksum, inspect the archive,
+`dist/quixseo-0.0.2.tar.gz`. Verify the recorded checksum, inspect the archive,
 and extract it into the host's plugin directory. It contains backend.js and
 manifest.json, not an entire EmDash site or a database.
 

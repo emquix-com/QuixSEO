@@ -1,12 +1,16 @@
 # Release checklist — 0.0.2
 
-Version **0.0.1** was published on 2026-11-04; its listing profile is awaiting
-operator review. Version **0.0.2** is a local, unpublished branding update.
-It credits EmQuix and adds the approved SEO icon (not the Commerce preview).
-Preparing an archive does not publish it. No repository workflow publishes
-automatically. Do not update the live profile or publish until explicit go-live.
+Version **0.0.2** was published with explicit go-live on 2026-11-05. The current
+profile and release passed listing checks and the registry exposes 0.0.2.
+It credits EmQuix and includes the approved SEO icon. The earlier 0.0.1 release
+was preserved. Fresh public-registry installation remains to be verified.
+The checklist below is retained for future releases; preparing documentation
+or an archive does not authorize another publication or live profile update.
 
 ## Verified preparation
+
+- Version 0.0.2: validation run `42018669377` and Linux production smoke run
+  `42019169966` passed commit `53f0df202540167ef92f06582fe90d41d9c12533`.
 
 - Publisher: emquix.com, pinned as `did:plc:6clqzka76ueshbureaecbrfj`.
   Public handle/DID resolution and the official CLI's matching authenticated

@@ -10,6 +10,13 @@
   "security": { "url": "https://github.com/emquix-com/QuixSEO/security" },
   "repo": "https://github.com/emquix-com/QuixSEO",
   "keywords": ["seo", "metadata", "schema", "audit", "migration"],
+  "sections": {
+    "description": { "file": "./docs/registry/description.md" },
+    "installation": { "file": "./docs/registry/installation.md" },
+    "faq": { "file": "./docs/registry/faq.md" },
+    "changelog": { "file": "./docs/registry/changelog.md" },
+    "security": { "file": "./docs/registry/security.md" }
+  },
   "capabilities": ["content:read", "content:revisions:read", "schema:read", "redirects:write", "admin.editor-draft:read"],
   "allowedHosts": [],
   "storage": {
