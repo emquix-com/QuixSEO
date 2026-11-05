@@ -6,9 +6,9 @@ QuixSEO adds original editorial SEO guidance, readability checks, structured dat
 and reviewed site management to EmDash. It is free, with no accounts, advertising,
 paid features or AI dependency.
 
-**Version: 0.0.1.** The tested production target is **Linux, Node 24 and EmDash
-1.4.0**, using the official Node/workerd sandbox. A packaged development build
-passed production browser workflows and restart checks; the final 0.0.1 package
+**Version: 0.0.2 (unpublished).** The tested production target is **Linux, Node 24 and EmDash
+1.4.0**, using the official Node/workerd sandbox. The 0.0.1 release preparation
+passed production browser workflows and restart checks; the new 0.0.2 package
 still needs its release smoke run. Windows development was tested; Windows
 standalone production and deployed Cloudflare are not verified supported targets.
 Cloudflare sandboxed plugins require Workers Paid.

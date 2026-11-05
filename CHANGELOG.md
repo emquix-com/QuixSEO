@@ -1,8 +1,15 @@
 # Changelog
 
-## 0.0.1 — pending publication
+## 0.0.2 — unpublished
 
-- First planned public release under the verified emquix.com publisher identity.
+- Credit EmQuix with https://emquix.com as the public package and listing author.
+- Add the approved EmQuix SEO icon, with the smaller shared plugin-family label,
+  as a 256 × 256 PNG and declared registry release artwork.
+- No plugin runtime or permission changes. Publication requires explicit go-live.
+
+## 0.0.1 — published 2026-11-04; registry profile review pending
+
+- First release published under the verified emquix.com publisher identity.
 - Editorial SEO/readability guidance, saved/unsaved draft analysis and search
   appearance previews using native EmDash SEO fields.
 - Separate one-click saves for keyphrases, cornerstone, additional robots flags,

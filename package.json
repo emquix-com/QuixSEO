@@ -1,13 +1,13 @@
 {
   "name": "quixseo",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "QuixSEO — Complete SEO Toolkit for EmDash · EmQuix",
   "type": "module",
   "private": true,
   "license": "MIT",
   "author": {
-    "name": "Webtaculos",
-    "url": "https://webtaculos.com"
+    "name": "EmQuix",
+    "url": "https://emquix.com"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -57,6 +57,7 @@
     "./sandbox": "./dist/plugin.mjs"
   },
   "files": [
+    "icon.png",
     "dist",
     "emdash-plugin.jsonc",
     "LICENSE",

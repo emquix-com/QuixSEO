@@ -1,7 +1,10 @@
-# Release checklist — 0.0.1
+# Release checklist — 0.0.2
 
-The first planned public version is **0.0.1**. Preparing an archive does not
-publish it. No repository workflow publishes automatically.
+Version **0.0.1** was published on 2026-11-04; its listing profile is awaiting
+operator review. Version **0.0.2** is a local, unpublished branding update.
+It credits EmQuix and adds the approved SEO icon (not the Commerce preview).
+Preparing an archive does not publish it. No repository workflow publishes
+automatically. Do not update the live profile or publish until explicit go-live.
 
 ## Verified preparation
 
@@ -17,18 +20,18 @@ publish it. No repository workflow publishes automatically.
 
 ## Before publication
 
-1. Keep package.json and the lockfile at 0.0.1. Review CHANGELOG.md, screenshots,
+1. Keep package.json and the lockfile at 0.0.2. Review CHANGELOG.md, screenshots,
    public claims, dependency notices and the scope in compatibility.md.
 2. Run `npm ci`, `npm run check`, `npm run test:imports`,
    `npm run test:sandbox` and `npm run bundle` on the final release commit.
 3. Run the manual Linux production smoke workflow on that same final commit.
    Inspect its logs and browser artifacts; an earlier development-build pass is
-   not evidence that the final 0.0.1 archive passed. Record the final checksum.
+   not evidence that the final 0.0.2 archive passed. Record the final checksum.
 4. Confirm the limitations: native SEO changes are preview-only; Windows Node
    production fails on the tested runner; deployed Cloudflare is untested and
    requires Workers Paid for sandboxed plugins; actual source-plugin migration
    exports and fresh production authentication remain unverified.
-5. Make the GitHub repository public at launch, as planned, so setup links,
+5. Confirm the GitHub repository remains public so setup links,
    security information and the llms.txt route example are accessible. Keep
    databases, credentials, sessions and local QA files out of Git.
 6. Verify registry admission under the pinned publisher. Offline validation and
@@ -40,7 +43,7 @@ publish it. No repository workflow publishes automatically.
 
 ## Artifact and recovery
 
-The official CLI packages backend.js, manifest.json, README.md and two real
+The official CLI packages backend.js, manifest.json, README.md, icon.png and two real
 screenshots within its 256 KB unpacked limit. README includes QuixSEO and Zod
 license notices because the packager does not copy arbitrary license files.
 The source package stays `private: true` to prevent accidental npm publication;
