@@ -2,7 +2,6 @@
 
 - Added Search, Checks and Social tabs to the editor, with the first finding and
   analysis actions above them.
-- Added a prioritized next-action list with edit links after a site review.
 
 ## 0.0.2 — 5 November 2026
 

@@ -1,6 +1,6 @@
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import type { Analysis } from "../domain/analysis.js";
-import { analyze, nextFinding } from "../domain/analysis.js";
+import { analyze } from "../domain/analysis.js";
 import { normalize } from "../domain/content.js";
 import { validateSchema } from "../domain/schema.js";
 import {
@@ -41,14 +41,6 @@ export interface AuditJob {
   failures?: number;
   nextAttemptAt?: number;
   attention?: number;
-  nextActions?: {
-    contentId: string;
-    collection: string;
-    locale: string;
-    title: string;
-    severity: "Fix" | "Review";
-    message: string;
-  }[];
   lease: number;
   collections: { slug: string; titleField: string; bodyField: string }[];
   collectionIndex: number;
@@ -101,7 +93,6 @@ export async function startAudit(
     phase: "scan",
     lastProgressAt: new Date().toISOString(),
     attention: 0,
-    nextActions: [],
     failures: 0,
     lease: 0,
     collections: collections.map((c) => ({
@@ -336,23 +327,6 @@ export async function stepAudit(
           );
         }
         r.issues = [...new Set(r.issues)];
-        const finding = nextFinding(r.analysis.checks);
-        const message = finding?.message ?? r.issues[0];
-        if (job.nextActions && message) {
-          job.nextActions.push({
-            contentId: r.contentId,
-            collection: r.collection,
-            locale: r.locale,
-            title: r.title.slice(0, 160),
-            severity: finding?.status === "problem" ? "Fix" : "Review",
-            message: message.slice(0, 320),
-          });
-          job.nextActions.sort(
-            (a, b) =>
-              Number(b.severity === "Fix") - Number(a.severity === "Fix"),
-          );
-          job.nextActions.length = Math.min(job.nextActions.length, 8);
-        }
         const issueCount =
           r.issues.length +
           r.analysis.checks.filter(

@@ -140,12 +140,22 @@ try {
   await panel();
   assert.equal(await page.locator("form form").count(), 0);
   checks.push("EmDash 1.4 editor renders no nested forms");
+  await page.getByRole("button", { name: "Analyze current editor" }).click();
+  await expect(
+    page.getByText("Current editor — unsaved changes", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Refresh saved analysis" }).click();
+  await expect(
+    page.getByText("Current editor — unsaved changes", { exact: true }),
+  ).toBeHidden();
+  checks.push("Editor analysis switches between current and saved content");
   await page
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .fill("checkout guidance");
   await page
     .getByLabel("Open Graph title override", { exact: true })
     .fill('QA social & "quotes" <safe>');
+  await page.getByLabel("X / Twitter title override").fill("QA title for X");
   await page.getByLabel("Nofollow links on this page", { exact: true }).check();
   await page
     .getByLabel(
@@ -158,6 +168,12 @@ try {
   await expect(
     page.getByLabel("Focus keyphrases, comma separated", { exact: true }),
   ).toHaveValue("checkout guidance");
+  await page.getByRole("tab", { name: "Social", exact: true }).click();
+  await expect(
+    page.getByText('QA social & "quotes" <safe>', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("QA title for X", { exact: true })).toBeVisible();
+  checks.push("Social tab previews the two saved title overrides separately");
   checks.push("One-click editor save persists settings");
   const before = (await api(`content/posts/${item.id}`)).item;
   await bulk({
@@ -365,10 +381,6 @@ try {
   await page
     .getByText("Completed", { exact: true })
     .waitFor({ timeout: 180000 });
-  await expect(page.getByText("Next actions", { exact: true })).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Edit entry" }).first(),
-  ).toBeVisible();
   await page
     .getByRole("button", { name: "View audit results", exact: true })
     .click();
@@ -396,6 +408,7 @@ try {
       for (const label of [
         "Focus keyphrases, comma separated",
         "Open Graph title override",
+        "X / Twitter title override",
         "Advanced schema configuration (JSON; leave empty for WebPage defaults)",
       ])
         await page.getByLabel(label, { exact: true }).fill("");

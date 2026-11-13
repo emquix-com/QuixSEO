@@ -4,8 +4,6 @@
 
 - Surface the first SEO finding and current-editor analysis controls above the
   Search, Checks and Social tabs. Preview Open Graph and X metadata separately.
-- Show up to eight next actions from a newly completed site review, with fixes
-  first and direct links to the content editor.
 
 ## 0.0.2 — published 2026-11-05
 
