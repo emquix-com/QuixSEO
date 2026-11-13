@@ -69,6 +69,16 @@ async function panel(p = page) {
   await p
     .getByRole("button", { name: "QuixSEO · Content guidance", exact: true })
     .click();
+  await expect(
+    p.getByText("Search appearance preview", { exact: true }),
+  ).toBeVisible();
+  await p.getByRole("tab", { name: "Checks", exact: true }).click();
+  await expect(p.getByText(/Automated check coverage:/)).toBeVisible();
+  await p.getByRole("tab", { name: "Social", exact: true }).click();
+  await expect(
+    p.getByText("X / Twitter preview", { exact: true }),
+  ).toBeVisible();
+  await p.getByRole("tab", { name: "Search", exact: true }).click();
   await p
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .waitFor();
@@ -355,6 +365,10 @@ try {
   await page
     .getByText("Completed", { exact: true })
     .waitFor({ timeout: 180000 });
+  await expect(page.getByText("Next actions", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Edit entry" }).first(),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "View audit results", exact: true })
     .click();

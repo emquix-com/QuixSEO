@@ -98,7 +98,7 @@ export const response = (blocks: Block[], message?: string): BlockResponse => ({
   blocks,
   ...(message ? { toast: { type: "success" as const, message } } : {}),
 });
-export function analysisBlocks(a: Analysis): Block[] {
+export function analysisBlocks(a: Analysis): [Block, Block, ...Block[]] {
   // EmDash 1.3.1 renders neutral Block Kit badges without custom variants.
   // Accessible labels plus a colored marker stay readable in narrow editors.
   const label = {

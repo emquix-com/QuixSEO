@@ -44,6 +44,14 @@ export interface Analysis {
   linksAssessed: boolean;
   assessment: { assessed: number; unavailable: number; notApplicable: number };
 }
+
+export function nextFinding(checks: Check[]) {
+  return (
+    checks.find((check) => check.status === "problem") ??
+    checks.find((check) => check.status === "improve")
+  );
+}
+
 export function score(checks: Check[]): number | null {
   const applicable = checks.filter(
     (c) => c.status !== "unsupported" && c.weight > 0,

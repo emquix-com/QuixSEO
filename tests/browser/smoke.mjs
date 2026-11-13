@@ -147,6 +147,7 @@ try {
   await panel.waitFor();
   await panel.click();
   await page.getByText(/^SEO checks:/).waitFor();
+  await page.getByRole("tab", { name: "Checks", exact: true }).click();
   await expect(page.getByText(/Automated check coverage:/)).toBeVisible();
   await expect(page.getByText("⚪ N/A", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/No images to assess/)).toBeVisible();

@@ -116,6 +116,52 @@ export function auditBlocks(job: AuditJob): Block[] {
           ]
         : []),
     ),
+    ...(job.phase === "complete"
+      ? [
+          section("Next actions"),
+          ...(job.nextActions?.length
+            ? [
+                context(
+                  "Up to eight entries from this audit, with fixes first.",
+                ),
+                {
+                  type: "table" as const,
+                  page_action_id: "audit-next-actions",
+                  columns: [
+                    { key: "title", label: "Entry" },
+                    {
+                      key: "severity",
+                      label: "Priority",
+                      format: "badge" as const,
+                    },
+                    { key: "message", label: "Next action" },
+                    {
+                      key: "open",
+                      label: "Editor",
+                      format: "element" as const,
+                    },
+                  ],
+                  rows: job.nextActions.map((entry) => ({
+                    title: entry.title,
+                    severity: entry.severity,
+                    message: entry.message,
+                    open: editLink(
+                      entry.collection,
+                      entry.contentId,
+                      entry.locale,
+                    ),
+                  })),
+                },
+              ]
+            : [
+                context(
+                  job.nextActions
+                    ? "No entries require attention in this audit."
+                    : "Start a new site review to build a next-action queue.",
+                ),
+              ]),
+        ]
+      : []),
     {
       type: "accordion",
       label: "Advanced details",

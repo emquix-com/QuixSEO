@@ -1,6 +1,7 @@
 import type { Block, BlockResponse } from "@emdash-cms/blocks";
 import type { PluginContext, SandboxedRouteContext } from "emdash/plugin";
 import { z } from "#validation";
+import { nextFinding } from "../domain/analysis.js";
 import { validateSchema } from "../domain/schema.js";
 import { siteUrlWarning } from "../domain/urls.js";
 import {
@@ -20,7 +21,6 @@ import {
   button,
   context,
   form,
-  header,
   input,
   response,
   section,
@@ -161,15 +161,23 @@ async function renderEditor(
     detail,
     data,
   } = await editorContent(ctx, ref, snapshot);
+  const finding = nextFinding(analysis.checks);
+  const [seoScore, readabilityScore, ...checks] = analysisBlocks(analysis);
   const blocks: Block[] = [
-    header("QuixSEO"),
-    context("Complete SEO Toolkit for EmDash · EmQuix"),
+    seoScore,
+    readabilityScore,
     section(source),
-    context(
-      "Analysis uses saved SEO metadata and QuixSEO settings. Unsaved changes in EmDash’s native SEO controls are not included. Draft public paths are not assessed; compare scores only with equivalent coverage.",
+    ...(finding
+      ? [
+          context(
+            `${finding.status === "problem" ? "Fix" : "Review"} first: ${finding.message}`,
+          ),
+        ]
+      : []),
+    actions(
+      button("analyze-current", "Analyze current editor"),
+      button("refresh-saved", "Refresh saved analysis"),
     ),
-    actions(button("analyze-current", "Analyze current editor")),
-    actions(button("refresh-saved", "Refresh saved analysis")),
     ...(warning
       ? [
           {
@@ -198,42 +206,63 @@ async function renderEditor(
           },
         ]
       : []),
-    ...analysisBlocks(analysis),
     {
-      type: "accordion",
-      label: "Search appearance preview",
-      blocks: [
-        section(item.seo?.title || title),
-        context(
-          source === "Published content"
-            ? (urls.page ??
-                "Public URL unavailable — no route is assumed for this preview.")
-            : `Saved public URL: ${urls.page ?? "Not available"}. The draft path is not assessed.`,
-        ),
-        section(
-          item.seo?.description || String(data.excerpt ?? "No description"),
-        ),
-        context(
-          "Approximation only. Search engines may rewrite titles and snippets. Theme must render getSeoMeta().",
-        ),
-        context(
-          item.seo?.description
-            ? "Description source: saved SEO metadata."
-            : "Description source: excerpt fallback for preview; no explicit SEO description is saved.",
-        ),
-      ],
-    },
-    {
-      type: "accordion",
-      label: "Social sharing preview",
-      blocks: [
-        section(config.ogTitle || item.seo?.title || title),
-        section(
-          config.ogDescription || item.seo?.description || "No description",
-        ),
-        context(
-          `Image: ${config.ogImage || item.seo?.image || site.defaultImage || "Not configured"}`,
-        ),
+      type: "tab",
+      panels: [
+        {
+          label: "Search",
+          blocks: [
+            section("Search appearance preview"),
+            section(item.seo?.title || title),
+            context(
+              source === "Published content"
+                ? (urls.page ??
+                    "Public URL unavailable — no route is assumed for this preview.")
+                : `Saved public URL: ${urls.page ?? "Not available"}. The draft path is not assessed.`,
+            ),
+            section(
+              item.seo?.description || String(data.excerpt ?? "No description"),
+            ),
+            context(
+              "Approximation only. Search engines may rewrite titles and snippets. Theme must render getSeoMeta().",
+            ),
+            context(
+              item.seo?.description
+                ? "Description source: saved SEO metadata."
+                : "Description source: excerpt fallback for preview; no explicit SEO description is saved.",
+            ),
+            context(
+              "The preview uses saved native SEO fields. Draft paths and unsaved native SEO edits are outside the analysis.",
+            ),
+          ],
+        },
+        { label: "Checks", blocks: checks },
+        {
+          label: "Social",
+          blocks: [
+            section("Open Graph preview"),
+            section(config.ogTitle || item.seo?.title || title),
+            section(
+              config.ogDescription || item.seo?.description || "No description",
+            ),
+            context(
+              `Image: ${config.ogImage || item.seo?.image || site.defaultImage || "Not configured"}`,
+            ),
+            section("X / Twitter preview"),
+            section(
+              config.twitterTitle || config.ogTitle || item.seo?.title || title,
+            ),
+            section(
+              config.twitterDescription ||
+                config.ogDescription ||
+                item.seo?.description ||
+                "No description",
+            ),
+            context(
+              `Image: ${config.twitterImage || config.ogImage || item.seo?.image || site.defaultImage || "Not configured"}`,
+            ),
+          ],
+        },
       ],
     },
   ];
