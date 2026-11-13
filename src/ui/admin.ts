@@ -31,6 +31,12 @@ import {
 } from "../services/context.js";
 import { llmsUrls } from "../services/llms.js";
 import {
+  applyRedirectImport,
+  closeRedirectImport,
+  currentRedirectImport,
+  prepareRedirectImport,
+} from "../services/redirect-import.js";
+import {
   auditBlocks,
   auditHistory,
   findingBlocks,
@@ -52,6 +58,7 @@ import {
 } from "./components.js";
 import { llmsBlocks, llmsPreview } from "./llms.js";
 import { planBlocks } from "./plans.js";
+import { redirectImportBlocks } from "./redirect-import.js";
 
 const interactionSchema = z.looseObject({
   type: z.enum(["page_load", "block_action", "form_submit"]),
@@ -241,12 +248,16 @@ async function settingsView(ctx: PluginContext): Promise<Block[]> {
 async function redirectView(
   ctx: PluginContext,
   cursor?: string,
+  importActor?: string,
 ): Promise<Block[]> {
   const page = await ctx.redirects?.list({ limit: 20, cursor });
+  const importPlan = importActor
+    ? await currentRedirectImport(ctx, importActor)
+    : null;
   return [
     header("Redirects"),
     context(
-      "Native EmDash rules. Use EmDash Redirects → 404 Errors for the real original-path log. No network crawl is performed here. Pattern rules and global chain inspection remain in core.",
+      "Native EmDash rules. Open EmDash Redirects → 404 Errors to review missed URLs.",
     ),
     {
       type: "table",
@@ -268,15 +279,45 @@ async function redirectView(
     ...(page?.hasMore
       ? [actions(button("redirect-next", "Next redirects", page.cursor))]
       : []),
-    form("redirect-preview", "Validate redirect", [
-      input("source", "Source local path"),
-      input("destination", "Destination local path or absolute URL"),
-      select("type", "HTTP status", ["301", "302"], "301"),
-    ]),
     {
       type: "accordion",
-      label: "Export this page (JSON)",
+      block_id: "redirect-manual",
+      label: "Add a redirect",
       blocks: [
+        form("redirect-preview", "Validate redirect", [
+          input("source", "Source local path", "", false, "/old-page"),
+          input(
+            "destination",
+            "Destination local path",
+            "",
+            false,
+            "/new-page",
+          ),
+          select("type", "HTTP status", ["301", "302"], "301"),
+        ]),
+        context("301 is permanent. 302 is temporary."),
+      ],
+    },
+    ...(importActor
+      ? [
+          {
+            type: "accordion" as const,
+            block_id: "redirect-csv",
+            label: "CSV redirect import",
+            default_open: importPlan !== null,
+            blocks: redirectImportBlocks(importPlan),
+          },
+        ]
+      : []),
+    {
+      type: "accordion",
+      block_id: "redirect-json",
+      label: "JSON import and export",
+      blocks: [
+        form("redirect-import", "Validate redirect JSON", [
+          input("json", "Paste one exported redirect object", "", true),
+        ]),
+        section("Export this page (JSON)"),
         {
           type: "code",
           language: "jsonc",
@@ -294,9 +335,6 @@ async function redirectView(
         },
       ],
     },
-    form("redirect-import", "Validate redirect JSON", [
-      input("json", "Paste one exported redirect object", "", true),
-    ]),
   ];
 }
 async function renderAdmin(
@@ -524,6 +562,22 @@ async function renderAdmin(
     );
     if (!p) throw new Error("Operation not found");
     blocks = planBlocks(p);
+  } else if (
+    a === "redirect-csv-preview" ||
+    a === "redirect-csv-apply" ||
+    a === "redirect-csv-close"
+  ) {
+    actor(route, 50);
+    if (a === "redirect-csv-close") {
+      await closeRedirectImport(ctx, actorId, uuid.parse(i.value));
+      blocks = await redirectView(ctx, undefined, actorId);
+    } else {
+      const plan =
+        a === "redirect-csv-preview"
+          ? await prepareRedirectImport(ctx, actorId, v.csv)
+          : await applyRedirectImport(ctx, actorId, uuid.parse(i.value));
+      blocks = [header("CSV redirect import"), ...redirectImportBlocks(plan)];
+    }
   } else if (a === "redirect-preview" || a === "redirect-import") {
     actor(route, 50);
     const rule = redirectSchema.parse(
@@ -575,11 +629,15 @@ async function renderAdmin(
     if (!ctx.redirects?.create)
       throw new Error("Redirect write capability unavailable");
     await ctx.redirects.create({ ...rule, groupName: "quixseo" });
-    return response(await redirectView(ctx), "Native redirect created");
+    return response(
+      await redirectView(ctx, undefined, actorId),
+      "Native redirect created",
+    );
   } else if (a === "redirect-next")
     blocks = await redirectView(
       ctx,
       z.string().check(z.maxLength(4096)).parse(i.value),
+      route.user && route.user.role >= 50 ? actorId : undefined,
     );
   else if (a === "history-next")
     blocks = await history(
@@ -615,7 +673,11 @@ async function renderAdmin(
         ];
         break;
       case "/redirects":
-        blocks = await redirectView(ctx);
+        blocks = await redirectView(
+          ctx,
+          undefined,
+          route.user && route.user.role >= 50 ? actorId : undefined,
+        );
         break;
       case "/history":
         blocks = await history(ctx);
@@ -695,6 +757,7 @@ export async function admin(
     "migration-preview": { page: "/migration", role: 50 },
     "redirect-preview": { page: "/redirects", role: 50 },
     "redirect-import": { page: "/redirects", role: 50 },
+    "redirect-csv-preview": { page: "/redirects", role: 50 },
   };
   const interaction = interactionSchema.parse(route.input);
   const action = interaction.action_id ?? "";
@@ -715,12 +778,19 @@ export async function admin(
       { ...route, input: { type: "page_load", page: target.page } },
       ctx,
     );
-    for (const block of panel.blocks) {
-      if (
-        block.type !== "form" ||
-        block.submit.action_id !== interaction.action_id
-      )
-        continue;
+    for (const group of panel.blocks) {
+      const block =
+        group.type === "accordion"
+          ? group.blocks.find(
+              (child) =>
+                child.type === "form" && child.submit.action_id === action,
+            )
+          : group;
+      if (block?.type !== "form" || block.submit.action_id !== action) continue;
+      if (group.type === "accordion") {
+        group.default_open = true;
+        group.block_id = `${group.block_id}:retry:${crypto.randomUUID()}`;
+      }
       // Recovered initial values need a fresh Block Kit field group, otherwise
       // the host retains uncontrolled input state from the preceding response.
       block.block_id = `${interaction.action_id}:retry:${crypto.randomUUID()}`;

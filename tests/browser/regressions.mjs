@@ -79,6 +79,12 @@ async function panel(p = page) {
     p.getByText("X / Twitter preview", { exact: true }),
   ).toBeVisible();
   await p.getByRole("tab", { name: "Search", exact: true }).click();
+  await expect(
+    p.getByRole("button", { name: "Save QuixSEO settings", exact: true }),
+  ).toBeHidden();
+  await p
+    .getByRole("button", { name: "QuixSEO settings", exact: true })
+    .click();
   await p
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .waitFor();
@@ -149,6 +155,12 @@ try {
     page.getByText("Current editor — unsaved changes", { exact: true }),
   ).toBeHidden();
   checks.push("Editor analysis switches between current and saved content");
+  const settings = page.getByRole("button", {
+    name: "QuixSEO settings",
+    exact: true,
+  });
+  if ((await settings.getAttribute("aria-expanded")) === "false")
+    await settings.click();
   await page
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .fill("checkout guidance");
@@ -267,12 +279,12 @@ try {
     "Stale editor submissions retain edits without overwriting newer settings",
   );
   await page.goto(`${base}/_emdash/admin/plugins/quixseo/redirects`);
+  await expect(page.getByPlaceholder("/old-page")).toBeHidden();
   await page
-    .getByLabel("Source local path", { exact: true })
-    .fill("/qa-regression-invalid");
-  await page
-    .getByLabel("Destination local path or absolute URL", { exact: true })
-    .fill("javascript:alert(1)");
+    .getByRole("button", { name: "Add a redirect", exact: true })
+    .click();
+  await page.getByPlaceholder("/old-page").fill("/qa-regression-invalid");
+  await page.getByPlaceholder("/new-page").fill("javascript:alert(1)");
   await page
     .getByRole("button", { name: "Validate redirect", exact: true })
     .click();
@@ -280,16 +292,14 @@ try {
   await expect(
     page.getByLabel("Source local path", { exact: true }),
   ).toHaveValue("/qa-regression-invalid");
-  await expect(
-    page.getByLabel("Destination local path or absolute URL", { exact: true }),
-  ).toHaveValue("javascript:alert(1)");
+  await expect(page.getByPlaceholder("/new-page")).toHaveValue(
+    "javascript:alert(1)",
+  );
   await page.screenshot({
     path: join(output, "redirect-retained.png"),
     fullPage: true,
   });
-  await page
-    .getByLabel("Destination local path or absolute URL", { exact: true })
-    .fill("/");
+  await page.getByPlaceholder("/new-page").fill("/");
   await page
     .getByRole("button", { name: "Validate redirect", exact: true })
     .click();

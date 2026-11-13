@@ -41,7 +41,11 @@ export const redirectSchema = z
     }),
   );
 export type RedirectRule = z.infer<typeof redirectSchema>;
-export function redirectIssues(rules: RedirectRule[]): {
+export function redirectIssues<
+  T extends Pick<RedirectRule, "source" | "destination">,
+>(
+  rules: T[],
+): {
   source: string;
   issue: string;
 }[] {

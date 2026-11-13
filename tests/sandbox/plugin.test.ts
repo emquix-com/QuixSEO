@@ -60,6 +60,126 @@ function noError(result: unknown) {
   expect(JSON.stringify(result)).not.toContain("could not complete");
 }
 describe("Official Worker Loader sandbox and production runtime", () => {
+  it("resumes a reviewed CSV import across restart without duplicating rules", async () => {
+    const { host, admin } = await setup();
+    const page = "/redirects";
+    const csv = [
+      "source,destination,type,enabled,pattern",
+      "/old/[slug],/posts/[slug],301,true,true",
+      "/temporary,/posts/garden-care,302,true,false",
+      "/move/[...path],/docs/[...path],307,true,true",
+      "/permanent,/posts/garden-care,308,true,false",
+      "/gone,,410,true,false",
+      "/restricted,,451,false,false",
+    ].join("\r\n");
+    const review = await host.admin.submit(
+      page,
+      "redirect-csv-preview",
+      { csv },
+      { user: admin },
+    );
+    const action = review.blocks
+      .flatMap((block) => (block.type === "actions" ? block.elements : []))
+      .find(
+        (element) =>
+          element.type === "button" &&
+          element.action_id === "redirect-csv-apply",
+      );
+    if (action?.type !== "button") throw new Error(JSON.stringify(review));
+    const apply = () =>
+      host.admin.act(page, "redirect-csv-apply", {
+        user: admin,
+        value: action.value,
+      });
+    expect(await host.inspect.redirects()).toHaveLength(0);
+    const other = await host.fixtures.user({
+      email: "other-admin@example.test",
+      role: "admin",
+    });
+    expect(
+      JSON.stringify(
+        await host.admin.act(page, "redirect-csv-apply", {
+          user: other,
+          value: action.value,
+        }),
+      ),
+    ).toContain("no longer current");
+    await host.fixtures.redirect({
+      source: "/temporary",
+      destination: "/posts/garden-care",
+      type: 302,
+    });
+    expect(JSON.stringify(await apply())).toContain("3 of 6 rules processed");
+    await host.restart();
+    expect(
+      JSON.stringify(await host.admin.loadPage(page, { user: admin })),
+    ).toContain("Continue import");
+    expect(JSON.stringify(await apply())).toContain("6 of 6 rules processed");
+    expect(JSON.stringify(await apply())).toContain("6 of 6 rules processed");
+    const rules = await host.inspect.redirects();
+    expect(rules).toHaveLength(6);
+    expect(rules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "/old/[slug]",
+          isPattern: true,
+          type: 301,
+        }),
+        expect.objectContaining({
+          source: "/move/[...path]",
+          isPattern: true,
+          type: 307,
+        }),
+        expect.objectContaining({
+          source: "/restricted",
+          enabled: false,
+          type: 451,
+          destination: "",
+        }),
+      ]),
+    );
+  });
+
+  it("pauses a CSV import if a source changes after review", async () => {
+    const { host, admin } = await setup();
+    const page = "/redirects";
+    const csv =
+      "source,destination,type\n/first,/target,301\n/second,/target,308\n/third,/target,302";
+    const review = await host.admin.submit(
+      page,
+      "redirect-csv-preview",
+      { csv },
+      { user: admin },
+    );
+    const action = review.blocks
+      .flatMap((block) => (block.type === "actions" ? block.elements : []))
+      .find(
+        (element) =>
+          element.type === "button" &&
+          element.action_id === "redirect-csv-apply",
+      );
+    if (action?.type !== "button") throw new Error(JSON.stringify(review));
+    await host.fixtures.redirect({
+      source: "/second",
+      destination: "/someone-elses-target",
+      type: 308,
+    });
+    const apply = () =>
+      host.admin.act(page, "redirect-csv-apply", {
+        user: admin,
+        value: action.value,
+      });
+    const result = JSON.stringify(await apply());
+    expect(result).toContain("1 of 3 rules processed");
+    expect(result).toContain("CSV line 3");
+    expect(JSON.stringify(await apply())).toContain("1 of 3 rules processed");
+    const rules = await host.inspect.redirects();
+    expect(rules).toHaveLength(2);
+    expect(rules.find((rule) => rule.source === "/second")?.destination).toBe(
+      "/someone-elses-target",
+    );
+  });
+
   it("loads every declared Block Kit page and editor with real content", async () => {
     const { host, admin, item } = await setup();
     for (const path of [
@@ -898,7 +1018,11 @@ it("saves ordinary settings in one sandboxed form submit, detects stale forms an
   const panel = await host.admin.loadEditorPanel("quixseo", "posts", item.id, {
     user: admin,
   });
-  const form = panel.blocks.find((b) => b.type === "form");
+  const settings = panel.blocks.find(
+    (b) => b.type === "accordion" && b.block_id === "editor-settings",
+  );
+  if (settings?.type !== "accordion") throw new Error("Missing settings");
+  const form = settings.blocks.find((b) => b.type === "form");
   if (form?.type !== "form") throw new Error("Missing settings form");
   const values = Object.fromEntries(
     form.fields.map((f) => [

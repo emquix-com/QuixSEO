@@ -1,5 +1,29 @@
 # WordPress SEO migration
 
+## Import redirect rules from CSV
+
+In **QuixSEO → Redirects**, expand **CSV redirect import**, paste up to 50
+rules, and choose **Review CSV**.
+Use the header `source,destination,type`. You can add `enabled` and `pattern`
+in that order. Both accept `true` or `false`. Rules are enabled by default, and
+the source determines whether a rule is a pattern.
+
+```csv
+source,destination,type,enabled,pattern
+/old-post,/posts/new-post,301,true,false
+/old-blog/[...path],/blog/[...path],308,true,true
+/removed-page,,410,true,false
+```
+
+Use site-relative destinations for 301, 302, 307, and 308. Leave the
+destination blank for 410 and 451. After review, choose **Start import** and
+continue until all rows are processed. The import saves its progress after
+each row. A retry checks pending sources, skips matching rules, and pauses at
+a conflicting rule. Reopen **Redirects** as the same admin to resume an import.
+Closing an import keeps the rules it already created.
+
+## Import post metadata
+
 QuixSEO 0.0.1 imports mapped plugin-owned data and previews native SEO values.
 **It cannot save native titles, descriptions, canonical URLs or noindex through
 the tested EmDash 1.3.1 and 1.4.0 sandboxes.** A mixed plan is blocked in full. Apply reviewed native

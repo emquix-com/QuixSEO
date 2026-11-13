@@ -1,7 +1,10 @@
 ## 0.0.3
 
+- Added reviewed CSV redirect imports with resumable batches, native path patterns, and all six redirect status codes.
+- Grouped redirect tools into collapsible sections and added example paths to the manual form.
 - Added Search, Checks and Social tabs to the editor, with the first finding and
   analysis actions above them.
+- Keep the settings form collapsed until the editor opens it.
 
 ## 0.0.2 — 5 November 2026
 

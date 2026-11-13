@@ -307,7 +307,12 @@ describe("ordinary settings save", () => {
       cornerstone: true,
     });
     const panel = await editor(route, ctx);
-    const form = panel.blocks.find((b) => b.type === "form");
+    const settings = panel.blocks.find(
+      (b) => b.type === "accordion" && b.block_id === "editor-settings",
+    );
+    if (settings?.type !== "accordion") throw new Error("Missing settings");
+    expect(settings.default_open).toBe(false);
+    const form = settings.blocks.find((b) => b.type === "form");
     if (form?.type !== "form") throw new Error("Missing form");
     const values = Object.fromEntries(
       form.fields.map((f) => [
@@ -348,6 +353,12 @@ describe("ordinary settings save", () => {
       ctx,
     );
     expect(invalid.toast?.type).toBe("error");
+    expect(invalid.blocks).toContainEqual(
+      expect.objectContaining({
+        block_id: "editor-settings",
+        default_open: true,
+      }),
+    );
     expect(JSON.stringify(invalid)).toContain("keep my edits");
     expect(JSON.stringify(invalid)).toContain("invalid JSON");
     const result = await editor(submit, ctx);

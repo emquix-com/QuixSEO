@@ -2,8 +2,13 @@
 
 ## 0.0.3
 
+- Preview and resume create-only CSV redirect imports. Import native path patterns
+  and all six status codes, with matching rules skipped and conflicts reported.
+- Group redirect tools into collapsible sections and show example paths in the
+  manual form.
 - Surface the first SEO finding and current-editor analysis controls above the
   Search, Checks and Social tabs. Preview Open Graph and X metadata separately.
+- Keep the settings form collapsed until the editor opens it.
 
 ## 0.0.2 — published 2026-11-05
 

@@ -23,6 +23,7 @@
     "settings": { "indexes": [] },
     "entries": { "indexes": [] },
     "changes": { "indexes": ["createdAt", "actor"] },
+    "redirect_imports": { "indexes": [] },
     "jobs": { "indexes": ["createdAt"] },
     "reports": { "indexes": ["job", ["job", "titleKey"], ["job", "descriptionKey"], ["job", "url"]] },
     "edges": { "indexes": [["job", "target"]] }
@@ -41,6 +42,12 @@
   },
   "release": {
     "requires": { "env:emdash": ">=1.3.1 <2.0.0" },
-    "artifacts": { "icon": { "file": "./icon.png" } }
+    "artifacts": {
+      "icon": { "file": "./icon.png" },
+      "screenshots": [
+        { "file": "./screenshots/editor.jpg" },
+        { "file": "./screenshots/redirects.jpg" }
+      ]
+    }
   }
 }

@@ -274,50 +274,64 @@ async function renderEditor(
     );
     return response(blocks);
   }
-  blocks.push(
-    context(
-      "Manage native SEO title, description, canonical URL, indexing and social image in EmDash’s SEO panel. QuixSEO reads these saved values. Save the additional settings below separately; EmDash Save and autosave do not submit this form. Settings on published entries take effect immediately.",
-    ),
-    form(`save-editor:${await fingerprint(config)}`, "Save QuixSEO settings", [
-      input(
-        "keyphrases",
-        "Focus keyphrases, comma separated",
-        config.keyphrases.join(", "),
+  blocks.push({
+    type: "accordion",
+    block_id: "editor-settings",
+    label: "QuixSEO settings",
+    default_open: false,
+    blocks: [
+      context(
+        "Edit native metadata in EmDash’s SEO panel. Use Save QuixSEO settings for the fields below. Changes to published entries take effect immediately.",
       ),
-      toggle("cornerstone", "Cornerstone content", config.cornerstone),
-      toggle("noFollow", "Nofollow links on this page", config.noFollow),
-      toggle("noSnippet", "Suppress search snippets", config.noSnippet),
-      input("ogTitle", "Open Graph title override", config.ogTitle),
-      input(
-        "ogDescription",
-        "Open Graph description override",
-        config.ogDescription,
-        true,
+      form(
+        `save-editor:${await fingerprint(config)}`,
+        "Save QuixSEO settings",
+        [
+          input(
+            "keyphrases",
+            "Focus keyphrases, comma separated",
+            config.keyphrases.join(", "),
+          ),
+          toggle("cornerstone", "Cornerstone content", config.cornerstone),
+          toggle("noFollow", "Nofollow links on this page", config.noFollow),
+          toggle("noSnippet", "Suppress search snippets", config.noSnippet),
+          input("ogTitle", "Open Graph title override", config.ogTitle),
+          input(
+            "ogDescription",
+            "Open Graph description override",
+            config.ogDescription,
+            true,
+          ),
+          input("ogImage", "Open Graph image URL override", config.ogImage),
+          input(
+            "twitterTitle",
+            "X / Twitter title override",
+            config.twitterTitle,
+          ),
+          input(
+            "twitterDescription",
+            "X / Twitter description override",
+            config.twitterDescription,
+            true,
+          ),
+          input(
+            "twitterImage",
+            "X / Twitter image URL override",
+            config.twitterImage,
+          ),
+          input(
+            "schema",
+            "Advanced schema configuration (JSON; leave empty for WebPage defaults)",
+            config.schema ? JSON.stringify(config.schema, null, 2) : "",
+            true,
+          ),
+        ],
       ),
-      input("ogImage", "Open Graph image URL override", config.ogImage),
-      input("twitterTitle", "X / Twitter title override", config.twitterTitle),
-      input(
-        "twitterDescription",
-        "X / Twitter description override",
-        config.twitterDescription,
-        true,
+      context(
+        "Schema types: Organization, Person, WebSite, WebPage, Article, BlogPosting, BreadcrumbList, FAQPage, Product, LocalBusiness. See docs/schema.md for validated fields.",
       ),
-      input(
-        "twitterImage",
-        "X / Twitter image URL override",
-        config.twitterImage,
-      ),
-      input(
-        "schema",
-        "Advanced schema configuration (JSON; leave empty for WebPage defaults)",
-        config.schema ? JSON.stringify(config.schema, null, 2) : "",
-        true,
-      ),
-    ]),
-    context(
-      "Schema types: Organization, Person, WebSite, WebPage, Article, BlogPosting, BreadcrumbList, FAQPage, Product, LocalBusiness. See docs/schema.md for validated fields.",
-    ),
-  );
+    ],
+  });
   return response(blocks);
 }
 /** Preserve submitted settings on validation/conflict errors so editors can copy or correct them. */
@@ -339,7 +353,13 @@ export async function editor(
       { ...route, input: { type: "panel_load" } },
       ctx,
     );
-    for (const block of panel.blocks) {
+    const settings = panel.blocks.find(
+      (block) =>
+        block.type === "accordion" && block.block_id === "editor-settings",
+    );
+    if (settings?.type !== "accordion") throw error;
+    settings.default_open = true;
+    for (const block of settings.blocks) {
       if (block.type !== "form") continue;
       block.submit.action_id = interaction.action_id;
       block.block_id = `${interaction.action_id}:retry:${crypto.randomUUID()}`;

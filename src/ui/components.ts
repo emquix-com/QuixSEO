@@ -13,12 +13,14 @@ export const input = (
   label: string,
   value = "",
   multiline = false,
+  placeholder?: string,
 ): FormField => ({
   type: "text_input",
   action_id: id,
   label,
   initial_value: value,
   multiline,
+  ...(placeholder ? { placeholder } : {}),
 });
 export const toggle = (
   id: string,

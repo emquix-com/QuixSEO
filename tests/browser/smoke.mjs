@@ -171,6 +171,9 @@ try {
   );
   const social = `Garden social ${Date.now()}`;
   await page
+    .getByRole("button", { name: "QuixSEO settings", exact: true })
+    .click();
+  await page
     .getByLabel("Focus keyphrases, comma separated", { exact: true })
     .fill("garden care");
   await page
@@ -188,6 +191,9 @@ try {
   await expect(page.getByText(/QuixSEO settings saved/)).toBeVisible();
   await page.reload();
   await panel.click();
+  await page
+    .getByRole("button", { name: "QuixSEO settings", exact: true })
+    .click();
   await expect(
     page.getByLabel("Focus keyphrases, comma separated", { exact: true }),
   ).toHaveValue("garden care");
@@ -280,7 +286,7 @@ try {
   for (const [path, text] of [
     ["bulk", "Bulk SEO editor"],
     ["migration", "Migrate WordPress SEO metadata"],
-    ["redirects", "Validate redirect"],
+    ["redirects", "Add a redirect"],
     ["history", "View change"],
   ]) {
     await pluginPage(path);

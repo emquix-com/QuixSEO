@@ -6,7 +6,7 @@ QuixSEO adds original editorial SEO guidance, readability checks, structured dat
 and reviewed site management to EmDash. It is free, with no accounts, advertising,
 paid features or AI dependency.
 
-**Version: 0.0.2.** Available in the [EmDash registry](https://plugins.emdashcms.com/plugins/@emquix.com/quixseo).
+**Version: 0.0.3.** Install QuixSEO from the [EmDash registry](https://plugins.emdashcms.com/plugins/@emquix.com/quixseo).
 The tested production target is **Linux, Node 24 and EmDash 1.4.0**, using the
 official Node/workerd sandbox. A packaged 0.0.2 build passed production browser
 workflows and restart checks. Fresh public-registry installation remains a
@@ -29,8 +29,10 @@ Implemented workflows include:
   rollback. Bulk changes retain review and confirmation.
 - Resumable published-content audits, duplicate metadata counts, incoming links,
   potential orphan detection and bounded related-content suggestions.
-- Core redirect listing and reviewed exact-path creation; mapped Yoast/Rank Math
-  metadata previews and plugin-owned imports with a local WXR converter.
+- Core redirect listing, reviewed exact-path creation, and resumable CSV imports
+  for native patterns and all six redirect status codes.
+- Mapped Yoast/Rank Math metadata previews and plugin-owned imports with a local
+  WXR converter.
 - Optional [llms.txt generation](docs/llms-txt.md), with a public Markdown
   endpoint, preview/download and a root-route setup example. Referencing it from
   robots.txt requires manual configuration under current sandbox APIs.
