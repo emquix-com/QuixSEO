@@ -1,4 +1,4 @@
-## 0.0.3
+## 0.0.3 — 13 November 2026
 
 - Added reviewed CSV redirect imports with resumable batches, native path patterns, and all six redirect status codes.
 - Grouped redirect tools into collapsible sections and added example paths to the manual form.

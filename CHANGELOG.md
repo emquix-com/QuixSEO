@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.0.3
+## 0.0.3 — published 2026-11-13
 
 - Preview and resume create-only CSV redirect imports. Import native path patterns
   and all six status codes, with matching rules skipped and conflicts reported.
